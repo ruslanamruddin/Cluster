@@ -44,7 +44,8 @@ const AdminPage = () => {
           
           setIsAdmin(!!roleData);
         } else {
-          setIsAdmin(!!data?.is_admin);
+          // Fix: properly access the is_admin property from the JSON object
+          setIsAdmin(data?.is_admin === true);
         }
       } catch (error) {
         console.error('Error checking admin status:', error);
