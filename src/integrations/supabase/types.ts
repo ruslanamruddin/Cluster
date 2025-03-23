@@ -9,6 +9,59 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      hackathon_events: {
+        Row: {
+          created_at: string
+          day: number
+          description: string | null
+          end_time: string
+          event_date: string
+          event_type: string
+          hackathon_id: string
+          id: string
+          location: string | null
+          start_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day: number
+          description?: string | null
+          end_time: string
+          event_date: string
+          event_type?: string
+          hackathon_id: string
+          id?: string
+          location?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day?: number
+          description?: string | null
+          end_time?: string
+          event_date?: string
+          event_type?: string
+          hackathon_id?: string
+          id?: string
+          location?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hackathon_events_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hackathon_members: {
         Row: {
           hackathon_id: string

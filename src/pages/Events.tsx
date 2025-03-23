@@ -1,106 +1,84 @@
 
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
-import { ScheduleCalendar, ScheduleContent } from '@/components/Schedule';
-import { useState } from 'react';
-import { useToast } from '@/components/ui/use-toast';
-import { sampleSchedule, sampleTeamTasks } from '@/data/sampleScheduleData';
-import { useHackathon } from '@/context/HackathonContext';
 import { useAuth } from '@/context/AuthContext';
-import { HackathonSelector } from '@/components/Hackathon';
-import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
+import { useHackathon } from '@/context/HackathonContext';
+import HackathonSchedule from '@/components/Schedule/HackathonSchedule';
+import EventCreationForm from '@/components/Schedule/EventCreationForm';
 
 const Events = () => {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [schedule, setSchedule] = useState(sampleSchedule);
-  const [teamTasks, setTeamTasks] = useState(sampleTeamTasks);
-  const { toast } = useToast();
-  const { user, loading } = useAuth();
-  const { currentHackathon, isLoading: isHackathonLoading } = useHackathon();
+  const { user } = useAuth();
+  const { currentHackathon, loading: hackathonLoading } = useHackathon();
+  const [isOrganizer, setIsOrganizer] = useState(false);
 
-  const handleScheduleProcessed = (processedSchedule: any) => {
-    setSchedule(processedSchedule);
-    toast({
-      title: 'Schedule processed',
-      description: 'Your hackathon schedule has been processed and displayed.',
-    });
-  };
+  useEffect(() => {
+    if (user && currentHackathon) {
+      // Check if the user is an organizer for this hackathon
+      const checkOrganizer = async () => {
+        try {
+          const { data, error } = await fetch(
+            `/api/check-organizer?hackathonId=${currentHackathon.id}`
+          ).then(res => res.json());
+          
+          setIsOrganizer(data?.isOrganizer || false);
+        } catch (error) {
+          console.error("Error checking organizer status:", error);
+          setIsOrganizer(false);
+        }
+      };
+      
+      checkOrganizer();
+    }
+  }, [user, currentHackathon]);
 
-  const findScheduleForDate = () => {
-    if (!selectedDate) return null;
-    
-    const formattedDate = selectedDate.toDateString();
-    return schedule.find(day => day.date.toDateString() === formattedDate);
-  };
-
-  const selectedDaySchedule = findScheduleForDate();
-
-  if (loading || isHackathonLoading) {
+  if (hackathonLoading) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-center items-center h-64">
-            <p>Loading...</p>
-          </div>
+        <div className="container mx-auto py-8 flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </Layout>
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" />;
+  if (!currentHackathon) {
+    return (
+      <Layout>
+        <div className="container mx-auto py-8">
+          <h1 className="text-2xl font-bold mb-4">Events</h1>
+          <p>Please select a hackathon to view its events.</p>
+        </div>
+      </Layout>
+    );
   }
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <h1 className="text-3xl font-bold">Hackathon Events</h1>
-          <HackathonSelector />
-        </div>
+      <div className="container mx-auto py-8">
+        <h1 className="text-2xl font-bold mb-4">
+          {currentHackathon.name} - Schedule
+        </h1>
         
-        {!currentHackathon ? (
-          <Card>
-            <CardContent className="pt-6">
-              <Alert variant="default">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>No hackathon selected</AlertTitle>
-                <AlertDescription>
-                  Please select or create a hackathon from the dropdown above to view events.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            <div className="mb-6">
-              <Alert variant="default">
-                <AlertTitle>Current Hackathon: {currentHackathon.name}</AlertTitle>
-                <AlertDescription>
-                  {currentHackathon.description || 'No description provided'}
-                </AlertDescription>
-              </Alert>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <ScheduleCalendar 
-                selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate}
-                schedule={schedule}
-                onScheduleProcessed={handleScheduleProcessed}
-              />
-              
-              <ScheduleContent 
-                selectedDaySchedule={selectedDaySchedule}
-                teamTasks={teamTasks}
-                defaultTab="events"
-              />
-            </div>
-          </>
-        )}
+        <Tabs defaultValue="schedule">
+          <TabsList>
+            <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            {isOrganizer && (
+              <TabsTrigger value="manage">Manage Events</TabsTrigger>
+            )}
+          </TabsList>
+          
+          <TabsContent value="schedule">
+            <HackathonSchedule hackathonId={currentHackathon.id} />
+          </TabsContent>
+          
+          {isOrganizer && (
+            <TabsContent value="manage">
+              <EventCreationForm hackathonId={currentHackathon.id} />
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
     </Layout>
   );
