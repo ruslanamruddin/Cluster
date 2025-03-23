@@ -55,11 +55,36 @@ export function useSkillAnalysis({ onSuccess }: UseSkillAnalysisProps = {}) {
         Return ONLY the JSON array, no additional text or explanation.
       `;
       
-      const response = await generateText(prompt);
+      // Log the input prompt
+      console.log('=== SKILL ANALYSIS PROMPT ===');
+      console.log(prompt);
+      console.log('===========================');
+      
+      // Use forceValidJson option to ensure proper JSON response
+      const response = await generateText(prompt, { forceValidJson: true });
+      
+      // Log the raw AI response
+      console.log('=== SKILL ANALYSIS RAW RESPONSE ===');
+      console.log(response);
+      console.log('==================================');
       
       // Parse the response into skill objects
       try {
-        const skills = JSON.parse(response) as Skill[];
+        // No need for extensive cleaning as the generateText function now handles it
+        const cleanedResponse = response.trim();
+        
+        // Log the cleaned response before parsing
+        console.log('=== SKILL ANALYSIS CLEANED RESPONSE ===');
+        console.log(cleanedResponse);
+        console.log('======================================');
+        
+        const skills = JSON.parse(cleanedResponse) as Skill[];
+        
+        // Log the parsed skills
+        console.log('=== SKILL ANALYSIS PARSED SKILLS ===');
+        console.log(JSON.stringify(skills, null, 2));
+        console.log('==================================');
+        
         setAnalyzedSkills(skills);
         
         // Call success callback if provided

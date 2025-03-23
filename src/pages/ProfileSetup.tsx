@@ -24,11 +24,15 @@ import {
   Users,
   Brain,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  AlertCircle,
+  PencilIcon
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skill } from '@/components/ProfileCard';
 import { generateText } from '@/integrations/gemini/client';
+import { extractTextFromPDF } from '@/utils/pdfParser';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const ProfileSetup = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -64,8 +68,48 @@ const ProfileSetup = () => {
     try {
       // Extract text from file if it exists
       let resumeText = '';
+      let extractionError = false;
+      
       if (file) {
-        resumeText = await file.text();
+        try {
+          if (file.type === 'application/pdf') {
+            // Use PDF.js for PDF files
+            resumeText = await extractTextFromPDF(file);
+            console.log('Extracted PDF text (ProfileSetup):', resumeText.substring(0, 500) + '...');
+            
+            // If the extraction contains error message, show a warning
+            if (resumeText.includes('Unable to automatically extract text from the PDF')) {
+              extractionError = true;
+              toast({
+                title: "PDF extraction issue",
+                description: "We had trouble extracting text from your PDF. You may need to enter your skills manually.",
+                variant: "destructive",
+              });
+            }
+          } else {
+            // Use built-in text extraction for other formats
+            resumeText = await file.text();
+          }
+        } catch (extractError) {
+          console.error('File extraction error:', extractError);
+          toast({
+            title: "File reading issue",
+            description: "We had trouble reading your file. Try uploading a different format or enter your skills manually.",
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // If extraction failed and no other info, go back to input
+      if (!resumeText && !linkedInUrl && !additionalInfo) {
+        toast({
+          title: "Missing information",
+          description: "We couldn't extract information from your file. Please provide details manually.",
+          variant: "destructive",
+        });
+        setIsAnalyzing(false);
+        setStep('input');
+        return;
       }
       
       // Analyze with Gemini API
@@ -90,11 +134,36 @@ const ProfileSetup = () => {
         Return ONLY the JSON array, no additional text or explanation.
       `;
       
-      const response = await generateText(prompt);
+      // Log the input prompt
+      console.log('=== PROFILE SETUP - SKILL ANALYSIS PROMPT ===');
+      console.log(prompt);
+      console.log('==========================================');
+      
+      // Use forceValidJson option to ensure proper JSON response
+      const response = await generateText(prompt, { forceValidJson: true });
+      
+      // Log the raw AI response
+      console.log('=== PROFILE SETUP - SKILL ANALYSIS RAW RESPONSE ===');
+      console.log(response);
+      console.log('===============================================');
       
       // Parse the response into skill objects
       try {
-        const skills = JSON.parse(response) as Skill[];
+        // No need for extensive cleaning as the generateText function now handles it
+        const cleanedResponse = response.trim();
+        
+        // Log the cleaned response before parsing
+        console.log('=== PROFILE SETUP - SKILL ANALYSIS CLEANED RESPONSE ===');
+        console.log(cleanedResponse);
+        console.log('===================================================');
+        
+        const skills = JSON.parse(cleanedResponse) as Skill[];
+        
+        // Log the parsed skills
+        console.log('=== PROFILE SETUP - SKILL ANALYSIS PARSED SKILLS ===');
+        console.log(JSON.stringify(skills, null, 2));
+        console.log('=================================================');
+        
         setAnalyzedSkills(skills);
         setStep('results');
         
@@ -197,6 +266,27 @@ const ProfileSetup = () => {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="resume">Resume (PDF, DOCX)</Label>
+                  
+                  {file && file.type === 'application/pdf' && (
+                    <Alert variant="default" className="mb-4 border-yellow-500/50 bg-yellow-50 text-yellow-800 dark:bg-yellow-950/20 dark:text-yellow-400">
+                      <AlertCircle className="h-4 w-4 text-yellow-600" />
+                      <AlertTitle>PDF Processing Note</AlertTitle>
+                      <AlertDescription>
+                        If PDF analysis fails, you can manually list your skills in the field below.
+                        <Button 
+                          variant="link" 
+                          className="p-0 h-auto text-xs underline"
+                          onClick={() => setAdditionalInfo(prev => 
+                            prev + (prev ? '\n\n' : '') + 'My key skills include: '
+                          )}
+                        >
+                          <PencilIcon className="h-3 w-3 mr-1" />
+                          Add template
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
                       <div className="border border-input rounded-md px-3 py-2 flex justify-between items-center bg-background">

@@ -14,10 +14,10 @@ import {
 import { 
   FileUp, 
   Link as LinkIcon, 
-  Upload, 
-  FileText, 
   Loader2,
-  Brain 
+  Brain,
+  AlertCircle,
+  PencilIcon
 } from 'lucide-react';
 import { Skill } from './ProfileCard';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { useUserProfile } from '@/context/UserProfileContext';
 import { useSkillAnalysis } from '@/hooks/useSkillAnalysis';
+import { extractTextFromPDF } from '@/utils/pdfParser';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ResumeUploadProps {
   onSkillsAnalyzed: (skills: Skill[]) => void;
@@ -77,14 +79,38 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
       });
       return;
     }
-
-    setIsAnalyzing(true);
     
     try {
-      // Convert file to text if it exists
+      // Extract text from PDF or other file formats
       let resumeText = '';
+      
       if (file) {
-        resumeText = await file.text();
+        try {
+          if (file.type === 'application/pdf') {
+            resumeText = await extractTextFromPDF(file);
+            console.log('Extracted PDF text:', resumeText.substring(0, 500) + '...');
+          } else {
+            // Use built-in text extraction for other formats
+            resumeText = await file.text();
+          }
+        } catch (extractionError) {
+          console.error('File extraction error:', extractionError);
+          toast({
+            title: "File reading issue",
+            description: "We had trouble reading your file. Try uploading a different format or enter your skills manually.",
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // If no text was extracted successfully and there's no other info, show error
+      if (!resumeText && !linkedInUrl && !additionalInfo) {
+        toast({
+          title: "Missing information",
+          description: "We couldn't extract information from your file. Please provide details manually.",
+          variant: "destructive",
+        });
+        return;
       }
       
       // Call the analyze skills function from our hook
@@ -102,11 +128,9 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
       console.error('Error analyzing skills:', error);
       toast({
         title: "Analysis failed",
-        description: "We couldn't analyze your skills. Please try again.",
+        description: "We couldn't analyze your skills. Please try again or enter your skills manually.",
         variant: "destructive",
       });
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -135,6 +159,26 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {file && file.type === 'application/pdf' && (
+          <Alert variant="default" className="mb-4 border-yellow-500/50 bg-yellow-50 text-yellow-800 dark:bg-yellow-950/20 dark:text-yellow-400">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <AlertTitle>PDF Processing Note</AlertTitle>
+            <AlertDescription>
+              If PDF analysis fails, you can manually list your skills in the "Additional Information" section.
+              <Button 
+                variant="link" 
+                className="p-0 h-auto text-xs underline"
+                onClick={() => setAdditionalInfo(prev => 
+                  prev + (prev ? '\n\n' : '') + 'My key skills include: '
+                )}
+              >
+                <PencilIcon className="h-3 w-3 mr-1" />
+                Add template
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="resume">Resume (PDF, DOCX)</Label>
           <div className="flex items-center gap-3">
@@ -162,7 +206,13 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
                 size="icon"
                 onClick={() => setFile(null)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
+                     className="h-4 w-4">
+                  <path d="M18 6 6 18"></path>
+                  <path d="m6 6 12 12"></path>
+                </svg>
               </Button>
             )}
           </div>
@@ -191,7 +241,13 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
               onClick={() => setLinkedInUrl('')}
               disabled={!linkedInUrl}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
+                   className="h-4 w-4">
+                <path d="M18 6 6 18"></path>
+                <path d="m6 6 12 12"></path>
+              </svg>
             </Button>
           </div>
         </div>
