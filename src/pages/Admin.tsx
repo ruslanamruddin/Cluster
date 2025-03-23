@@ -59,7 +59,7 @@ const AdminPage = () => {
     }
 
     checkAdmin();
-  }, [user]);
+  }, [user, toast]);
 
   if (isLoading) {
     return (

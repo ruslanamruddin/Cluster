@@ -286,6 +286,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_skills: {
         Row: {
           created_at: string
@@ -330,6 +351,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_if_user_is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: Json
+      }
       get_or_create_skill: {
         Args: {
           skill_name: string
