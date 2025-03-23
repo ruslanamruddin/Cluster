@@ -90,7 +90,10 @@ const TaskList = ({ tasks, onAssignTask, onViewTask }: TaskListProps) => {
               </TableCell>
               <TableCell>
                 <Badge className={`${statusStyles[task.status].color}`}>
-                  <statusStyles[task.status].icon className="h-3 w-3 mr-1" />
+                  {(() => {
+                    const StatusIcon = statusStyles[task.status].icon;
+                    return <StatusIcon className="h-3 w-3 mr-1" />;
+                  })()}
                   <span className="capitalize">{task.status.replace('-', ' ')}</span>
                 </Badge>
               </TableCell>
