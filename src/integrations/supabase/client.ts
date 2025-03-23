@@ -29,29 +29,9 @@ export type TeamJoinRequest = {
   updated_at: string;
 };
 
-// Using string literals instead of deep type references
-export type TableName = 
-  | 'teams' 
-  | 'profiles' 
-  | 'team_members' 
-  | 'team_join_requests'
-  | 'skills'
-  | 'user_skills'
-  | 'team_skills_needed'
-  | 'user_profiles'
-  | 'user_roles'
-  | 'hackathons'
-  | 'hackathon_members'
-  | 'settings';
-
-export type FunctionName = 
-  | 'request_to_join_team'
-  | 'process_join_request'
-  | 'check_if_user_is_admin'
-  | 'get_or_create_skill'
-  | 'save_user_skills'
-  | 'get_team_with_members'
-  | 'get_team_skills_needed';
+// Using literal strings instead of complex types to avoid deep type instantiation
+export type TableName = string;
+export type FunctionName = string;
 
 // Simple record type for debugging
 export type SimpleRecord = Record<string, any>;
@@ -85,7 +65,7 @@ export const testPermissions = async () => {
   
   try {
     const { data, error } = await supabase
-      .from('profiles' as TableName)
+      .from('profiles')
       .select('*')
       .limit(1);
       
@@ -101,7 +81,7 @@ export const testPermissions = async () => {
 export const inspectTableSchema = async (tableName: string) => {
   try {
     const { data: tableData, error: tableError } = await supabase
-      .from(tableName as TableName)
+      .from(tableName)
       .select('*')
       .limit(1);
       
@@ -135,7 +115,7 @@ export const checkRlsPermissions = async (tableName: string) => {
     console.log("Current session:", sessionData);
     
     const { data: selectData, error: selectError } = await supabase
-      .from(tableName as TableName)
+      .from(tableName)
       .select('*')
       .limit(5);
       
@@ -144,7 +124,7 @@ export const checkRlsPermissions = async (tableName: string) => {
     const userId = sessionData?.session?.user?.id;
     if (userId) {
       const { data: ownData, error: ownError } = await supabase
-        .from(tableName as TableName)
+        .from(tableName)
         .select('*')
         .eq('id', userId)
         .maybeSingle();

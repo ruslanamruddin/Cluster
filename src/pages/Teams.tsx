@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -264,8 +263,8 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     setSelectedTeam(team);
     setTeamName(team.name);
     setTeamDescription(team.description || '');
-    setTeamProjectIdea(team.project_idea || '');
-    setIsRecruiting(team.is_recruiting || true);
+    setTeamProjectIdea(team.projectIdea || '');
+    setIsRecruiting(team.isRecruiting || true);
     setIsEditTeamOpen(true);
   };
 

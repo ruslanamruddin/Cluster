@@ -1,6 +1,6 @@
-import { supabase, TableName, FunctionName } from './client';
+
+import { supabase } from './client';
 import { toast } from '@/components/ui/use-toast';
-import { Database } from './types';
 
 /**
  * Generic API response type
@@ -50,7 +50,7 @@ async function sanitizeDataForTable(
     try {
       // First try to infer schema from a sample record
       const { data: sampleData, error } = await supabase
-        .from(table as TableName)
+        .from(table)
         .select('*')
         .limit(1);
       
@@ -98,7 +98,7 @@ export const supabaseApi = {
   ): Promise<ApiResponse<T>> {
     try {
       const { data, error } = await supabase
-        .from(table as TableName)
+        .from(table)
         .select(select)
         .eq(column, id)
         .maybeSingle();
@@ -131,7 +131,7 @@ export const supabaseApi = {
       const { select = '*', filters = {}, order, limit } = options;
       
       let query = supabase
-        .from(table as TableName)
+        .from(table)
         .select(select);
       
       // Apply filters
@@ -176,10 +176,10 @@ export const supabaseApi = {
       
       console.log(`Sanitized insert data for ${table}:`, sanitizedData);
       
-      // Use a simplified approach to avoid deep type instantiation
+      // Use a type assertion to help TypeScript with the complex types
       const { data: record, error } = await supabase
-        .from(table as TableName)
-        .insert(sanitizedData)
+        .from(table)
+        .insert(sanitizedData as any)
         .select()
         .maybeSingle();
       
@@ -213,10 +213,10 @@ export const supabaseApi = {
       
       console.log(`Sanitized update data for ${table}:`, sanitizedData);
       
-      // Use simplified approach to avoid deep type instantiation
+      // Use type assertion to avoid deep instantiation
       const { data: record, error } = await supabase
-        .from(table as TableName)
-        .update(sanitizedData)
+        .from(table)
+        .update(sanitizedData as any)
         .eq(column, id)
         .select()
         .maybeSingle();
@@ -263,32 +263,42 @@ export const supabaseApi = {
       
       console.log(`Sanitized data for ${table}:`, sanitizedData);
       
-      // Proceed with upsert using sanitized data and simplified types
+      // Use type assertion to bypass TypeScript's deep instantiation
       const { data: record, error } = await supabase
-        .from(table as TableName)
-        .upsert(sanitizedData, { 
+        .from(table)
+        .upsert(sanitizedData as any, { 
           onConflict: options.onConflict || 'id',
           ignoreDuplicates: false
-        });
+        })
+        .select();
       
       if (error) {
         console.error(`Upsert error for ${table}:`, error);
         throw error;
       }
       
-      // Since we're not returning data on upsert, we need to manually fetch the record
-      const { data: updatedRecord, error: fetchError } = await supabase
-        .from(table as TableName)
-        .select('*')
-        .eq('id', data.id)
-        .maybeSingle();
-        
-      if (fetchError) {
-        console.error(`Error fetching updated record:`, fetchError);
-        throw fetchError;
+      // Since the select might not return data depending on the table, we check for it
+      if (record && record.length > 0) {
+        return { data: record[0] as T, error: null, status: 200 };
       }
       
-      return { data: updatedRecord as T, error: null, status: 200 };
+      // Try to fetch the record if upsert didn't return it
+      if (data.id) {
+        const { data: fetchedRecord, error: fetchError } = await supabase
+          .from(table)
+          .select('*')
+          .eq('id', data.id)
+          .maybeSingle();
+          
+        if (fetchError) {
+          console.error(`Error fetching updated record:`, fetchError);
+          throw fetchError;
+        }
+        
+        return { data: fetchedRecord as T, error: null, status: 200 };
+      }
+      
+      return { data: null, error: null, status: 200 };
     } catch (error) {
       console.error(`Full upsert error details for ${table}:`, error);
       return { 
@@ -309,7 +319,7 @@ export const supabaseApi = {
   ): Promise<ApiResponse<null>> {
     try {
       const { error } = await supabase
-        .from(table as TableName)
+        .from(table)
         .delete()
         .eq(column, id);
       
@@ -333,8 +343,8 @@ export const supabaseApi = {
     params: Record<string, any> = {}
   ): Promise<ApiResponse<T>> {
     try {
-      // Simplify type handling to prevent deep instantiation
-      const { data, error } = await supabase.rpc(functionName as FunctionName, params);
+      // Use type assertion to avoid deep instantiation issues
+      const { data, error } = await supabase.rpc(functionName, params as any);
       
       if (error) throw error;
       
