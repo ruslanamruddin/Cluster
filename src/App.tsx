@@ -8,11 +8,13 @@ import Teams from '@/pages/Teams';
 import Tasks from '@/pages/Tasks';
 import Schedule from '@/pages/Schedule';
 import Events from '@/pages/Events';
+import AITools from '@/pages/AITools';
 import NotFound from '@/pages/NotFound';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { HackathonProvider } from './context/HackathonContext';
 import { Toaster } from '@/components/ui/toaster';
+import { AIAssistant } from '@/components/AI';
 import './App.css';
 import AdminPage from './pages/Admin';
 
@@ -31,10 +33,12 @@ function App() {
             <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
             <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+            <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
+          <AIAssistant />
         </Router>
       </HackathonProvider>
     </AuthProvider>

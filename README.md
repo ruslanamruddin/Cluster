@@ -32,9 +32,34 @@ cd <YOUR_PROJECT_NAME>
 # Step 3: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Set up environment variables
+cp .env.example .env
+# Edit .env with your API keys
+
+# Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
+
+## Environment Variables
+
+This project uses environment variables to securely store API keys. You need to set up the following environment variables:
+
+1. Copy the example environment file:
+```sh
+cp .env.example .env
+```
+
+2. Edit the `.env` file with your API keys:
+```
+# Supabase Configuration
+VITE_SUPABASE_URL="your-supabase-url"
+VITE_SUPABASE_ANON_KEY="your-supabase-anon-key"
+
+# Gemini API Configuration
+VITE_GEMINI_API_KEY="your-gemini-api-key"
+```
+
+3. Restart your development server if it's already running.
 
 **Edit a file directly in GitHub**
 
@@ -59,10 +84,14 @@ This project is built with .
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase (Backend)
+- Google Gemini AI
 
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/5107c8d3-0377-458c-b37c-f5b15b2b0325) and click on Share -> Publish.
+
+When deploying, make sure to set up the environment variables in your hosting provider.
 
 ## I want to use a custom domain - is that possible?
 

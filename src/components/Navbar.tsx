@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,8 @@ import {
   FileText, 
   Menu, 
   X,
-  CheckSquare
+  CheckSquare,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -41,6 +41,7 @@ const Navbar = () => {
     { name: 'Teams', path: '/teams', icon: <Users size={18} /> },
     { name: 'Tasks', path: '/tasks', icon: <CheckSquare size={18} /> },
     { name: 'Events', path: '/events', icon: <Calendar size={18} /> },
+    { name: 'AI Tools', path: '/ai-tools', icon: <Sparkles size={18} /> },
   ];
 
   const isActive = (path: string) => location.pathname === path;
