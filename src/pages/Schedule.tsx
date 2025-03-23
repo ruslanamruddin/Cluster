@@ -32,6 +32,14 @@ const Schedule = () => {
     return <Navigate to="/auth" />;
   }
 
+  // Convert the flat schedule array to a format expected by ScheduleDisplay
+  const currentDaySchedule = schedule.length > 0 ? {
+    id: schedule[0]?.id || '1',
+    day: schedule[0]?.day || 'Day 1',
+    date: schedule[0]?.date || new Date(),
+    events: schedule[0]?.events || []
+  } : null;
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -54,8 +62,8 @@ const Schedule = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <ScheduleUpload onScheduleUpdated={setSchedule} />
-            <ScheduleDisplay schedule={schedule} />
+            <ScheduleUpload onScheduleProcessed={setSchedule} />
+            {currentDaySchedule && <ScheduleDisplay daySchedule={currentDaySchedule} />}
           </div>
         )}
       </div>
