@@ -338,8 +338,8 @@ const Explore = () => {
           id,
           name,
           description,
-          projectIdea,
-          isRecruiting,
+          project_idea,
+          is_recruiting,
           team_members (
             id,
             is_admin,
@@ -385,8 +385,8 @@ const Explore = () => {
           name: teamData.name,
           description: teamData.description || '',
           members,
-          projectIdea: teamData.projectIdea || '',
-          isRecruiting: teamData.isRecruiting,
+          projectIdea: teamData.project_idea || '',
+          isRecruiting: teamData.is_recruiting,
           skillsNeeded,
         };
       });
