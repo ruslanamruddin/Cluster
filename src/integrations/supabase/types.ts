@@ -128,6 +128,48 @@ export type Database = {
         }
         Relationships: []
       }
+      team_join_requests: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_join_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_join_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           created_at: string
@@ -207,6 +249,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          hackathon_id: string | null
           id: string
           is_recruiting: boolean | null
           name: string
@@ -216,6 +259,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          hackathon_id?: string | null
           id?: string
           is_recruiting?: boolean | null
           name: string
@@ -225,13 +269,22 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          hackathon_id?: string | null
           id?: string
           is_recruiting?: boolean | null
           name?: string
           project_idea?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "teams_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_skills: {
         Row: {
@@ -277,7 +330,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_or_create_skill: {
+        Args: {
+          skill_name: string
+        }
+        Returns: string
+      }
+      process_join_request: {
+        Args: {
+          p_request_id: string
+          p_status: string
+          p_admin_user_id: string
+        }
+        Returns: Json
+      }
+      request_to_join_team: {
+        Args: {
+          p_team_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      save_user_skills: {
+        Args: {
+          p_user_id: string
+          p_skills: Json
+        }
+        Returns: {
+          created_at: string
+          id: string
+          level: Database["public"]["Enums"]["skill_level"]
+          skill_id: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       skill_level: "beginner" | "intermediate" | "expert"

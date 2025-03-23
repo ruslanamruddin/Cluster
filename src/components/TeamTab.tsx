@@ -32,6 +32,7 @@ const TeamTab: React.FC<TeamTabProps> = ({
 }) => {
   const [userTeams, setUserTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [joinRequests, setJoinRequests] = useState<Record<string, string>>({});
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -39,6 +40,7 @@ const TeamTab: React.FC<TeamTabProps> = ({
   useEffect(() => {
     if (user) {
       fetchUserTeams();
+      fetchJoinRequests();
     } else {
       setUserTeams([]);
       setIsLoading(false);
@@ -74,6 +76,79 @@ const TeamTab: React.FC<TeamTabProps> = ({
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchJoinRequests = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('team_join_requests')
+        .select('team_id, status')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      const requestMap: Record<string, string> = {};
+      if (data) {
+        data.forEach(req => {
+          requestMap[req.team_id] = req.status;
+        });
+      }
+      
+      setJoinRequests(requestMap);
+    } catch (error) {
+      console.error('Error fetching join requests:', error);
+    }
+  };
+
+  const handleJoinRequest = async (teamId: string) => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.rpc(
+        'request_to_join_team',
+        { 
+          p_team_id: teamId,
+          p_user_id: user.id
+        }
+      );
+      
+      if (error) throw error;
+      
+      if (data.error) {
+        toast({
+          title: "Join Request Failed",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Update local state
+      setJoinRequests(prev => ({
+        ...prev,
+        [teamId]: 'pending'
+      }));
+      
+      toast({
+        title: "Join Request Sent",
+        description: "Your request to join the team has been sent to the team admin.",
+      });
+      
+      // Refresh data
+      fetchJoinRequests();
+    } catch (error) {
+      console.error('Error sending join request:', error);
+      toast({
+        title: "Request Failed",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -119,6 +194,12 @@ const TeamTab: React.FC<TeamTabProps> = ({
     );
   }
 
+  // Filter teams that the user is not already a member of
+  const availableTeams = teams.filter(team => 
+    team.isRecruiting && 
+    !userTeams.some(ut => ut.id === team.id)
+  );
+
   return (
     <div className="space-y-8">
       <TeamDashboard 
@@ -129,13 +210,11 @@ const TeamTab: React.FC<TeamTabProps> = ({
       <div>
         <h2 className="text-xl font-semibold mb-4">Other Teams</h2>
         <TeamList 
-          teams={teams.filter(team => 
-            team.isRecruiting && 
-            !userTeams.some(ut => ut.id === team.id)
-          )}
-          onJoinRequest={onJoinRequest}
+          teams={availableTeams}
+          onJoinRequest={handleJoinRequest}
           onViewDetails={onViewDetails}
           isLoading={isLoadingTeams}
+          joinRequests={joinRequests}
         />
       </div>
     </div>

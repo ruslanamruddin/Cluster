@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card,
@@ -11,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { UserProfile } from './ProfileCard';
-import { Users, ArrowRight, UserPlus } from 'lucide-react';
+import { Users, ArrowRight, UserPlus, Clock, Check, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 export interface Team {
@@ -22,6 +21,7 @@ export interface Team {
   projectIdea: string;
   isRecruiting: boolean;
   skillsNeeded?: string[];
+  hackathonId?: string;
 }
 
 interface TeamListProps {
@@ -29,13 +29,15 @@ interface TeamListProps {
   onJoinRequest?: (teamId: string) => void;
   onViewDetails?: (team: Team) => void;
   isLoading?: boolean;
+  joinRequests?: Record<string, string>;
 }
 
 const TeamList: React.FC<TeamListProps> = ({ 
   teams, 
   onJoinRequest, 
   onViewDetails,
-  isLoading = false 
+  isLoading = false,
+  joinRequests = {}
 }) => {
   const { toast } = useToast();
   
@@ -67,6 +69,68 @@ const TeamList: React.FC<TeamListProps> = ({
       </div>
     );
   }
+
+  const getJoinRequestButton = (teamId: string) => {
+    const status = joinRequests[teamId];
+    
+    if (!status) {
+      return (
+        <Button 
+          onClick={() => onJoinRequest && onJoinRequest(teamId)} 
+          variant="outline" 
+          size="sm"
+          className="gap-1"
+        >
+          <UserPlus size={14} />
+          Request to Join
+        </Button>
+      );
+    }
+    
+    if (status === 'pending') {
+      return (
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="gap-1 bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+          disabled
+        >
+          <Clock size={14} />
+          Request Pending
+        </Button>
+      );
+    }
+    
+    if (status === 'approved') {
+      return (
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="gap-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+          disabled
+        >
+          <Check size={14} />
+          Approved
+        </Button>
+      );
+    }
+    
+    if (status === 'rejected') {
+      return (
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="gap-1 bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+          disabled
+        >
+          <X size={14} />
+          Rejected
+        </Button>
+      );
+    }
+    
+    return null;
+  };
 
   return (
     <div className="space-y-6">
@@ -153,21 +217,7 @@ const TeamList: React.FC<TeamListProps> = ({
                 </Button>
                 
                 {team.isRecruiting && onJoinRequest && (
-                  <Button 
-                    onClick={() => {
-                      onJoinRequest(team.id);
-                      toast({
-                        title: "Request sent",
-                        description: "Your request to join the team has been sent.",
-                      });
-                    }} 
-                    variant="outline" 
-                    size="sm"
-                    className="gap-1"
-                  >
-                    <UserPlus size={14} />
-                    Request to Join
-                  </Button>
+                  getJoinRequestButton(team.id)
                 )}
               </div>
             </CardContent>

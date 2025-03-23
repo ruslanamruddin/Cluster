@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 import { UserProfile } from './ProfileCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,6 +25,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { Users, X, Plus, Check, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+
+interface Hackathon {
+  id: string;
+  name: string;
+}
 
 interface TeamCreationProps {
   availableMembers: UserProfile[];
@@ -39,8 +51,44 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
   const [selectedMembers, setSelectedMembers] = useState<UserProfile[]>([]);
   const [showMemberSelector, setShowMemberSelector] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [hackathons, setHackathons] = useState<Hackathon[]>([]);
+  const [selectedHackathon, setSelectedHackathon] = useState<string>('');
+  const [loadingHackathons, setLoadingHackathons] = useState(false);
+  
   const { toast } = useToast();
   const { user } = useAuth();
+
+  useEffect(() => {
+    fetchHackathons();
+  }, []);
+
+  const fetchHackathons = async () => {
+    try {
+      setLoadingHackathons(true);
+      const { data, error } = await supabase
+        .from('hackathons')
+        .select('id, name')
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      
+      setHackathons(data || []);
+      
+      // If there's only one hackathon, select it by default
+      if (data && data.length === 1) {
+        setSelectedHackathon(data[0].id);
+      }
+    } catch (error) {
+      console.error('Error fetching hackathons:', error);
+      toast({
+        title: "Failed to load hackathons",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingHackathons(false);
+    }
+  };
 
   const handleAddMember = (member: UserProfile) => {
     if (!selectedMembers.find(m => m.id === member.id)) {
@@ -86,14 +134,17 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
       setIsLoading(true);
       
       // Create team in Supabase
-      const { data: teamData, error: teamError } = await supabase
+      const teamData = {
+        name: teamName,
+        description,
+        project_idea: projectIdea,
+        is_recruiting: true,
+        hackathon_id: selectedHackathon || null
+      };
+      
+      const { data: team, error: teamError } = await supabase
         .from('teams')
-        .insert({
-          name: teamName,
-          description,
-          project_idea: projectIdea,
-          is_recruiting: true,
-        })
+        .insert(teamData)
         .select()
         .single();
       
@@ -101,7 +152,7 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
       
       // Add team members
       const teamMembersToInsert = selectedMembers.map((member, index) => ({
-        team_id: teamData.id,
+        team_id: team.id,
         user_id: member.id,
         is_admin: index === 0, // First member is admin
       }));
@@ -112,14 +163,12 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
       
       if (memberError) throw memberError;
       
-      // If there are skills needed, add them
-      // This would be implemented if we had a way to specify skills needed
-      
       // Reset form
       setTeamName('');
       setDescription('');
       setProjectIdea('');
       setSelectedMembers([]);
+      setSelectedHackathon('');
       
       // Call the callback to update UI
       onTeamCreated({
@@ -160,6 +209,31 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="hackathon">Hackathon</Label>
+            <Select 
+              value={selectedHackathon} 
+              onValueChange={setSelectedHackathon}
+              disabled={loadingHackathons}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a hackathon" />
+              </SelectTrigger>
+              <SelectContent>
+                {hackathons.map(hackathon => (
+                  <SelectItem key={hackathon.id} value={hackathon.id}>
+                    {hackathon.name}
+                  </SelectItem>
+                ))}
+                {hackathons.length === 0 && !loadingHackathons && (
+                  <SelectItem value="none" disabled>
+                    No active hackathons
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="team-name">Team Name</Label>
             <Input

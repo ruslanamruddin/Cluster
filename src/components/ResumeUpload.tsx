@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,10 +18,11 @@ import {
   FileText, 
   Loader2 
 } from 'lucide-react';
-import { analyzeSkills } from '@/lib/skillAnalysis';
 import { Skill } from './ProfileCard';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 interface ResumeUploadProps {
   onSkillsAnalyzed: (skills: Skill[]) => void;
@@ -35,6 +35,7 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [analyzedSkills, setAnalyzedSkills] = useState<Skill[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -43,10 +44,10 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
   };
 
   const handleAnalyze = async () => {
-    if (!file && !linkedInUrl) {
+    if (!file && !linkedInUrl && !additionalInfo) {
       toast({
         title: "Missing information",
-        description: "Please upload a resume or provide a LinkedIn URL",
+        description: "Please provide a resume, LinkedIn URL, or additional information",
         variant: "destructive",
       });
       return;
@@ -61,9 +62,22 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
         resumeText = await file.text();
       }
       
-      // Call the skill analysis function
-      const skills = await analyzeSkills(resumeText, linkedInUrl, additionalInfo);
+      // Call the Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('analyze-skills', {
+        body: {
+          resumeText,
+          linkedInUrl,
+          additionalInfo,
+          userId: user?.id // Pass userId if user is logged in
+        }
+      });
       
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Update skills and UI
+      const skills = data.skills as Skill[];
       setAnalyzedSkills(skills);
       onSkillsAnalyzed(skills);
       
@@ -197,6 +211,9 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
       <CardFooter className="flex-col sm:flex-row gap-2 sm:justify-between">
         <div className="text-xs text-muted-foreground">
           Your data is securely processed and not stored permanently.
+          {!user && (
+            <span className="ml-1 text-primary">Sign in to save your skills to your profile.</span>
+          )}
         </div>
         <Button 
           onClick={handleAnalyze} 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -21,13 +20,15 @@ import {
   LightbulbIcon,
   UserPlus,
   Shield,
-  LogOut
+  LogOut,
+  Clock,
+  Check,
+  X
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-// Create a new interface that extends UserProfile to include isAdmin
 interface TeamMember {
   id: string;
   name: string;
@@ -44,117 +45,247 @@ const Teams = () => {
   const [loading, setLoading] = useState(true);
   const [isUserMember, setIsUserMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [joinRequestStatus, setJoinRequestStatus] = useState<string | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Fetch the team data
   useEffect(() => {
-    const fetchTeam = async () => {
-      if (!id) return;
+    if (id) {
+      fetchTeam();
+      if (user) {
+        checkJoinRequestStatus();
+        if (isAdmin) {
+          fetchPendingRequests();
+        }
+      }
+    }
+  }, [id, user, isAdmin]);
+  
+  const fetchTeam = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
       
-      try {
-        setLoading(true);
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .select(`
+          id,
+          name,
+          description,
+          project_idea,
+          is_recruiting,
+          hackathon_id,
+          team_members (
+            id,
+            is_admin,
+            user_id,
+            profiles:user_id (
+              id,
+              name,
+              title,
+              avatar_url,
+              bio
+            )
+          ),
+          team_skills_needed (
+            id,
+            skills:skill_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('id', id)
+        .single();
+      
+      if (teamError) throw teamError;
+      
+      const members: TeamMember[] = teamData.team_members
+        .filter((member: any) => member.profiles)
+        .map((member: any) => ({
+          id: member.profiles.id,
+          name: member.profiles.name,
+          avatar: member.profiles.avatar_url || '',
+          title: member.profiles.title || '',
+          bio: member.profiles.bio || '',
+          skills: [],
+          isAdmin: member.is_admin
+        }));
         
-        const { data: teamData, error: teamError } = await supabase
-          .from('teams')
-          .select(`
+      const skillsNeeded = teamData.team_skills_needed
+        .filter((skill: any) => skill.skills)
+        .map((skill: any) => skill.skills.name);
+      
+      const transformedTeam: Team = {
+        id: teamData.id,
+        name: teamData.name,
+        description: teamData.description || '',
+        members,
+        projectIdea: teamData.project_idea || '',
+        isRecruiting: teamData.is_recruiting,
+        skillsNeeded,
+        hackathonId: teamData.hackathon_id
+      };
+      
+      setTeam(transformedTeam);
+      
+      if (user) {
+        const isMember = members.some(m => m.id === user.id);
+        setIsUserMember(isMember);
+        
+        const userMember = members.find(m => m.id === user.id);
+        const userAdmin = userMember?.isAdmin || false;
+        setIsAdmin(userAdmin);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching team:', error);
+      toast({
+        title: "Failed to load team",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const checkJoinRequestStatus = async () => {
+    if (!user || !id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('team_join_requests')
+        .select('status')
+        .eq('team_id', id)
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      setJoinRequestStatus(data?.status || null);
+    } catch (error) {
+      console.error('Error checking join request status:', error);
+    }
+  };
+  
+  const fetchPendingRequests = async () => {
+    if (!user || !id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('team_join_requests')
+        .select(`
+          id,
+          status,
+          created_at,
+          profiles:user_id (
             id,
             name,
-            description,
-            project_idea,
-            is_recruiting,
-            team_members (
-              id,
-              is_admin,
-              user_id,
-              profiles:user_id (
-                id,
-                name,
-                title,
-                avatar_url,
-                bio
-              )
-            ),
-            team_skills_needed (
-              id,
-              skills:skill_id (
-                id,
-                name
-              )
-            )
-          `)
-          .eq('id', id)
-          .single();
-        
-        if (teamError) throw teamError;
-        
-        // Transform the data
-        const members: TeamMember[] = teamData.team_members
-          .filter((member: any) => member.profiles)
-          .map((member: any) => ({
-            id: member.profiles.id,
-            name: member.profiles.name,
-            avatar: member.profiles.avatar_url || '',
-            title: member.profiles.title || '',
-            bio: member.profiles.bio || '',
-            skills: [], // We'll get skills in another query
-            isAdmin: member.is_admin
-          }));
-          
-        const skillsNeeded = teamData.team_skills_needed
-          .filter((skill: any) => skill.skills)
-          .map((skill: any) => skill.skills.name);
-        
-        const transformedTeam: Team = {
-          id: teamData.id,
-          name: teamData.name,
-          description: teamData.description || '',
-          members,
-          projectIdea: teamData.project_idea || '',
-          isRecruiting: teamData.is_recruiting,
-          skillsNeeded,
-        };
-        
-        setTeam(transformedTeam);
-        
-        // Check if the user is a member of this team
-        if (user) {
-          const isMember = members.some(m => m.id === user.id);
-          setIsUserMember(isMember);
-          
-          const userMember = members.find(m => m.id === user.id);
-          const userAdmin = userMember?.isAdmin || false;
-          setIsAdmin(userAdmin);
-        }
-        
-      } catch (error) {
-        console.error('Error fetching team:', error);
-        toast({
-          title: "Failed to load team",
-          description: `Error: ${(error as Error).message}`,
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchTeam();
-  }, [id, user]);
+            avatar_url,
+            title
+          )
+        `)
+        .eq('team_id', id)
+        .eq('status', 'pending');
+      
+      if (error) throw error;
+      
+      setPendingRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching pending requests:', error);
+    }
+  };
   
-  const handleJoinTeam = () => {
-    toast({
-      title: "Join request sent",
-      description: "Your request to join the team has been sent to the team admin.",
-    });
+  const handleJoinTeam = async () => {
+    if (!user || !id) return;
+    
+    try {
+      const { data, error } = await supabase.rpc(
+        'request_to_join_team',
+        {
+          p_team_id: id,
+          p_user_id: user.id
+        }
+      );
+      
+      if (error) throw error;
+      
+      if (data.error) {
+        toast({
+          title: "Join Request Failed",
+          description: data.error,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setJoinRequestStatus('pending');
+      
+      toast({
+        title: "Request sent",
+        description: "Your request to join the team has been sent to the team admin.",
+      });
+    } catch (error) {
+      console.error('Error requesting to join team:', error);
+      toast({
+        title: "Request Failed",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleProcessRequest = async (requestId: string, status: string) => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.rpc(
+        'process_join_request',
+        {
+          p_request_id: requestId,
+          p_status: status,
+          p_admin_user_id: user.id
+        }
+      );
+      
+      if (error) throw error;
+      
+      if (data.error) {
+        toast({
+          title: "Action Failed",
+          description: data.error,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: status === 'approved' ? "Request Approved" : "Request Rejected",
+        description: data.message,
+      });
+      
+      fetchPendingRequests();
+      fetchTeam();
+    } catch (error) {
+      console.error('Error processing join request:', error);
+      toast({
+        title: "Action Failed",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    }
   };
   
   const handleLeaveTeam = async () => {
     if (!user || !team) return;
     
     try {
-      // Get the team to check if user is the last member
       const { data: teamMembers, error: membersError } = await supabase
         .from('team_members')
         .select('id, is_admin')
@@ -165,12 +296,10 @@ const Teams = () => {
       const isLastMember = teamMembers.length === 1;
       
       if (isLastMember) {
-        // If user is the last member, ask if they want to delete the team
         if (!window.confirm("You are the last member of this team. Leaving will delete the team. Are you sure?")) {
           return;
         }
         
-        // Delete the team
         const { error: deleteError } = await supabase
           .from('teams')
           .delete()
@@ -183,10 +312,8 @@ const Teams = () => {
           description: "The team has been deleted as you were the last member.",
         });
         
-        // Navigate back to explore
         navigate('/explore');
       } else {
-        // Just remove the user from the team
         const { error: leaveError } = await supabase
           .from('team_members')
           .delete()
@@ -202,7 +329,6 @@ const Teams = () => {
           description: "You have successfully left the team.",
         });
         
-        // Navigate back to explore
         navigate('/explore');
       }
     } catch (error) {
@@ -213,6 +339,61 @@ const Teams = () => {
         variant: "destructive",
       });
     }
+  };
+  
+  const getJoinRequestButton = () => {
+    if (!joinRequestStatus) {
+      return (
+        <Button 
+          onClick={handleJoinTeam} 
+          className="gap-2"
+        >
+          <UserPlus size={16} />
+          Request to Join Team
+        </Button>
+      );
+    }
+    
+    if (joinRequestStatus === 'pending') {
+      return (
+        <Button 
+          variant="outline"
+          className="gap-2 bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+          disabled
+        >
+          <Clock size={16} />
+          Request Pending
+        </Button>
+      );
+    }
+    
+    if (joinRequestStatus === 'approved') {
+      return (
+        <Button 
+          variant="outline"
+          className="gap-2 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+          disabled
+        >
+          <Check size={16} />
+          Request Approved
+        </Button>
+      );
+    }
+    
+    if (joinRequestStatus === 'rejected') {
+      return (
+        <Button 
+          variant="outline"
+          className="gap-2 bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+          disabled
+        >
+          <X size={16} />
+          Request Rejected
+        </Button>
+      );
+    }
+    
+    return null;
   };
   
   if (loading) {
@@ -258,14 +439,12 @@ const Teams = () => {
     );
   }
   
-  // Get team skill sets
   const allTeamSkills = team.members.flatMap(member => member.skills);
   const skillCounts = allTeamSkills.reduce((acc, skill) => {
     acc[skill.name] = (acc[skill.name] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
   
-  // Find skill gaps (skills needed but not present in the team)
   const teamSkillNames = new Set(allTeamSkills.map(skill => skill.name));
   const skillGaps = team.skillsNeeded?.filter(skill => !teamSkillNames.has(skill)) || [];
   
@@ -307,7 +486,7 @@ const Teams = () => {
                   <p className="mt-2 text-muted-foreground">{team.projectIdea}</p>
                 </div>
                 
-                {team.isRecruiting && team.skillsNeeded.length > 0 && (
+                {team.isRecruiting && team.skillsNeeded && team.skillsNeeded.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                       <UserPlus className="h-5 w-5 text-primary" />
@@ -327,10 +506,7 @@ const Teams = () => {
                     
                     {team.isRecruiting && !isUserMember && user && (
                       <div className="mt-4">
-                        <Button onClick={handleJoinTeam} className="gap-2">
-                          <UserPlus size={16} />
-                          Request to Join Team
-                        </Button>
+                        {getJoinRequestButton()}
                       </div>
                     )}
                     
@@ -346,6 +522,53 @@ const Teams = () => {
                         </Button>
                       </div>
                     )}
+                  </div>
+                )}
+                
+                {isAdmin && pendingRequests.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-amber-500" />
+                      Pending Join Requests ({pendingRequests.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {pendingRequests.map(request => (
+                        <div key={request.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Avatar>
+                              <AvatarImage src={request.profiles.avatar_url} />
+                              <AvatarFallback>
+                                {request.profiles.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{request.profiles.name}</p>
+                              <p className="text-sm text-muted-foreground">{request.profiles.title}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 border-green-200 hover:bg-green-50 text-green-700"
+                              onClick={() => handleProcessRequest(request.id, 'approved')}
+                            >
+                              <Check size={14} />
+                              Approve
+                            </Button>
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 border-red-200 hover:bg-red-50 text-red-700"
+                              onClick={() => handleProcessRequest(request.id, 'rejected')}
+                            >
+                              <X size={14} />
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 
@@ -460,13 +683,7 @@ const Teams = () => {
                       </Badge>
                     ))}
                   </div>
-                  <Button 
-                    onClick={handleJoinTeam} 
-                    className="w-full gap-2"
-                  >
-                    <UserPlus size={16} />
-                    Request to Join
-                  </Button>
+                  {getJoinRequestButton()}
                 </CardContent>
               </Card>
             )}
