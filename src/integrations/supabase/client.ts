@@ -5,6 +5,22 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://bjbltjpiydaadpghgmdz.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqYmx0anBpeWRhYWRwZ2hnbWR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2Nzk4MTUsImV4cCI6MjA1ODI1NTgxNX0.4Qyq9N2nsgz6x6hkCOIqfy1PZQYspqhajr0BlEX6IQ0";
 
+// Export the types needed by TeamTab.tsx
+export type JoinRequestResponse = {
+  id?: string;
+  status?: string;
+  error?: string;
+};
+
+export type TeamJoinRequest = {
+  id: string;
+  team_id: string;
+  user_id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
