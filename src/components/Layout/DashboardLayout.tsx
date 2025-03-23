@@ -1,14 +1,14 @@
 
-import React, { ReactNode } from 'react';
+import React from 'react';
 import Layout from '@/components/Layout';
 
 interface DashboardLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
-    <Layout className="bg-background">
+    <Layout>
       {children}
     </Layout>
   );

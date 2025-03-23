@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { useUserProfile } from '@/context/UserProfileContext';
 import { supabase } from '@/integrations/supabase/client';
+import AvatarUpload from '@/components/AvatarUpload';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -61,6 +63,7 @@ const Profile = () => {
             bio: data.bio || 'No bio yet',
             linkedIn: data.linkedin_url,
             github: data.github_url,
+            avatar: data.avatar_url,
             skills: skills || [],
             skillsAnalyzed: hasCompletedSkillAnalysis
           };
@@ -133,6 +136,35 @@ const Profile = () => {
       toast({
         title: "Update failed",
         description: "We couldn't update your profile. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleAvatarUpload = async (url: string) => {
+    if (!user || !userProfile) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: url,
+          updated_at: new Date()
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      setUserProfile({
+        ...userProfile,
+        avatar: url
+      });
+      
+    } catch (error) {
+      console.error('Error updating avatar URL:', error);
+      toast({
+        title: "Avatar update failed",
+        description: "We couldn't update your avatar. Please try again.",
         variant: "destructive"
       });
     }
@@ -232,14 +264,19 @@ const Profile = () => {
             <Card className="sticky top-24">
               <CardHeader className="pb-4">
                 <div className="flex flex-col items-center">
-                  <Avatar className="h-24 w-24 mb-4">
-                    <AvatarImage src="" alt={userProfile.name} />
-                    <AvatarFallback className="text-2xl">
-                      {userProfile.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <CardTitle className="text-center">{userProfile.name}</CardTitle>
-                  <CardDescription className="text-center">{userProfile.title}</CardDescription>
+                  {user && (
+                    <AvatarUpload 
+                      userId={user.id}
+                      url={userProfile.avatar}
+                      name={userProfile.name}
+                      onUploadComplete={handleAvatarUpload}
+                      size="lg"
+                    />
+                  )}
+                  <div className="mt-4 text-center">
+                    <CardTitle>{userProfile.name}</CardTitle>
+                    <CardDescription>{userProfile.title}</CardDescription>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
