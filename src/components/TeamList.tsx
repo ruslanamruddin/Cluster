@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { 
   Card,
   CardContent,
@@ -27,9 +26,10 @@ export interface Team {
 interface TeamListProps {
   teams: Team[];
   onJoinRequest?: (teamId: string) => void;
+  onViewDetails?: (team: Team) => void;
 }
 
-const TeamList: React.FC<TeamListProps> = ({ teams, onJoinRequest }) => {
+const TeamList: React.FC<TeamListProps> = ({ teams, onJoinRequest, onViewDetails }) => {
   // Sort teams: recruiting teams first, then alphabetically
   const sortedTeams = [...teams].sort((a, b) => {
     if (a.isRecruiting && !b.isRecruiting) return -1;
@@ -111,12 +111,15 @@ const TeamList: React.FC<TeamListProps> = ({ teams, onJoinRequest }) => {
               </div>
               
               <div className="flex justify-between items-center pt-2">
-                <Link to={`/teams/${team.id}`}>
-                  <Button variant="ghost" size="sm" className="gap-1">
-                    View Details
-                    <ArrowRight size={14} />
-                  </Button>
-                </Link>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="gap-1"
+                  onClick={() => onViewDetails && onViewDetails(team)}
+                >
+                  View Details
+                  <ArrowRight size={14} />
+                </Button>
                 
                 {team.isRecruiting && onJoinRequest && (
                   <Button 

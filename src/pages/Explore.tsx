@@ -1,19 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import ProfileCard, { UserProfile } from '@/components/ProfileCard';
 import TeamList, { Team } from '@/components/TeamList';
+import TeamCreation from '@/components/TeamCreation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, X, Users } from 'lucide-react';
+import { 
+  Search, 
+  Filter, 
+  X, 
+  Users, 
+  PlusCircle, 
+  ArrowLeft,
+  LightbulbIcon,
+  UserPlus,
+  Shield
+} from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { 
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { categorizeSkills } from '@/lib/skillAnalysis';
+import { useAuth } from '@/context/AuthContext';
 
 const Explore = () => {
+  const { id } = useParams<{ id: string }>();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'members' | 'teams' | 'active-teams'>('active-teams');
+  const [activeTab, setActiveTab] = useState<'members' | 'teams' | 'active-teams' | 'create-team' | 'team-details'>('active-teams');
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [showTeamCreation, setShowTeamCreation] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const sampleUsers: UserProfile[] = [
     {
@@ -293,6 +320,19 @@ const Explore = () => {
     },
   ];
 
+  useEffect(() => {
+    if (id) {
+      const foundTeam = [...activeTeams, ...sampleTeams].find(t => t.id === id);
+      if (foundTeam) {
+        setSelectedTeam(foundTeam);
+        setActiveTab('team-details');
+      }
+    } else {
+      setSelectedTeam(null);
+      setActiveTab('active-teams');
+    }
+  }, [id]);
+
   const availableFilters = [
     'React', 'TypeScript', 'JavaScript', 'Node.js', 'Python', 
     'UI/UX', 'Database', 'Machine Learning', 'Mobile', 'Data Visualization'
@@ -323,6 +363,45 @@ const Explore = () => {
   const clearFilters = () => {
     setActiveFilters([]);
     setSearchTerm('');
+  };
+
+  const handleTeamCreated = (team: {
+    name: string;
+    description: string;
+    members: UserProfile[];
+    projectIdea: string;
+  }) => {
+    const newTeam: Team = {
+      id: `new-${Date.now()}`,
+      name: team.name,
+      description: team.description,
+      members: team.members,
+      projectIdea: team.projectIdea,
+      isRecruiting: true,
+      skillsNeeded: []
+    };
+    
+    activeTeams.unshift(newTeam);
+    
+    setActiveTab('active-teams');
+    setShowTeamCreation(false);
+    
+    toast({
+      title: "Team created successfully",
+      description: `${team.name} has been created with ${team.members.length} members.`,
+    });
+  };
+
+  const handleViewTeamDetails = (team: Team) => {
+    setSelectedTeam(team);
+    setActiveTab('team-details');
+    navigate(`/explore/${team.id}`);
+  };
+
+  const handleBackToTeams = () => {
+    setSelectedTeam(null);
+    setActiveTab('active-teams');
+    navigate('/explore');
   };
 
   const filteredUsers = sampleUsers.filter(user => {
@@ -372,6 +451,213 @@ const Explore = () => {
     return matchesSearch && matchesFilters;
   });
 
+  if (activeTab === 'team-details' && selectedTeam) {
+    const allTeamSkills = selectedTeam.members.flatMap(member => member.skills);
+    const skillCounts = allTeamSkills.reduce((acc, skill) => {
+      acc[skill.name] = (acc[skill.name] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const teamSkillNames = new Set(allTeamSkills.map(skill => skill.name));
+    const skillGaps = selectedTeam.skillsNeeded?.filter(skill => !teamSkillNames.has(skill)) || [];
+    
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <Button 
+            variant="ghost" 
+            className="mb-4 gap-2"
+            onClick={handleBackToTeams}
+          >
+            <ArrowLeft size={16} />
+            Back to Teams
+          </Button>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-2xl">{selectedTeam.name}</CardTitle>
+                      <CardDescription className="text-base mt-1">
+                        {selectedTeam.description}
+                      </CardDescription>
+                    </div>
+                    {selectedTeam.isRecruiting && (
+                      <Badge variant="outline" className="flex items-center gap-1 border-primary/30 text-primary">
+                        <UserPlus size={12} />
+                        Recruiting
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <LightbulbIcon className="h-5 w-5 text-amber-500" />
+                      Project Idea
+                    </h3>
+                    <p className="mt-2 text-muted-foreground">{selectedTeam.projectIdea}</p>
+                  </div>
+                  
+                  {selectedTeam.isRecruiting && skillGaps.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                        <UserPlus className="h-5 w-5 text-primary" />
+                        Skills Needed
+                      </h3>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {skillGaps.map((skill) => (
+                          <Badge 
+                            key={skill} 
+                            variant="secondary"
+                            className="bg-blue-100 text-blue-800"
+                          >
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                      
+                      {selectedTeam.isRecruiting && (
+                        <div className="mt-4">
+                          <Button onClick={() => handleJoinRequest(selectedTeam.id)} className="gap-2">
+                            <UserPlus size={16} />
+                            Request to Join Team
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-indigo-500" />
+                      Team Members ({selectedTeam.members.length})
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedTeam.members.map((member, index) => (
+                        <div key={member.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
+                          <Avatar className="h-10 w-10 border-2 border-border">
+                            <AvatarImage src={member.avatar} alt={member.name} />
+                            <AvatarFallback>
+                              {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-medium">{member.name}</h4>
+                                <p className="text-sm text-muted-foreground">{member.title}</p>
+                              </div>
+                              {index === 0 && (
+                                <Badge variant="outline" className="flex items-center gap-1 border-amber-300 text-amber-700 bg-amber-50">
+                                  <Shield size={10} />
+                                  Admin
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {member.skills.slice(0, 3).map(skill => (
+                                <Badge 
+                                  key={skill.name} 
+                                  variant="secondary"
+                                  className="text-xs py-0"
+                                >
+                                  {skill.name}
+                                </Badge>
+                              ))}
+                              {member.skills.length > 3 && (
+                                <span className="text-xs text-muted-foreground">+{member.skills.length - 3} more</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="space-y-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Team Skills</CardTitle>
+                  <CardDescription>
+                    Skills present in the team
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {Object.entries(categorizeSkills(allTeamSkills)).map(([category, skills]) => (
+                      <div key={category}>
+                        <h4 className="text-sm font-medium mb-2">{category}</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Array.from(new Set(skills.map(skill => skill.name))).map(skillName => {
+                            const count = skillCounts[skillName];
+                            return (
+                              <Badge 
+                                key={skillName} 
+                                variant="secondary"
+                                className="flex items-center gap-1"
+                              >
+                                {skillName}
+                                {count > 1 && (
+                                  <span className="ml-1 bg-primary/20 text-primary rounded-full px-1.5 text-xs">
+                                    {count}
+                                  </span>
+                                )}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {selectedTeam.isRecruiting && (
+                <Card>
+                  <CardHeader className="pb-3 bg-primary/5 border-b">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <UserPlus className="h-5 w-5" />
+                      Join This Team
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      This team is looking for members with the following skills:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {skillGaps.map(skill => (
+                        <Badge 
+                          key={skill} 
+                          variant="secondary"
+                          className="bg-blue-100 text-blue-800"
+                        >
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                    <Button 
+                      onClick={() => handleJoinRequest(selectedTeam.id)} 
+                      className="w-full gap-2"
+                    >
+                      <UserPlus size={16} />
+                      Request to Join
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -379,72 +665,101 @@ const Explore = () => {
           <h1 className="text-3xl font-bold">
             {activeTab === 'members' 
               ? 'Find Teammates' 
-              : activeTab === 'teams' 
+              : activeTab === 'teams' || activeTab === 'active-teams'
                 ? 'Find Teams' 
-                : 'Active Teams'}
+                : 'Create Team'}
           </h1>
           
-          <div className="relative w-full md:w-64">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
-              <Search size={18} />
-            </div>
-            <Input
-              type="search"
-              placeholder={`Search for ${
-                activeTab === 'members' 
-                  ? 'skills, roles...' 
-                  : 'teams, projects...'
-              }`}
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex items-center gap-2">
+            {activeTab !== 'create-team' && (
+              <div className="relative w-full md:w-64">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
+                  <Search size={18} />
+                </div>
+                <Input
+                  type="search"
+                  placeholder={`Search for ${
+                    activeTab === 'members' 
+                      ? 'skills, roles...' 
+                      : 'teams, projects...'
+                  }`}
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            )}
+            
+            {!showTeamCreation && activeTab !== 'create-team' && (
+              <Button 
+                onClick={() => {
+                  setShowTeamCreation(true);
+                  setActiveTab('create-team');
+                }}
+                className="whitespace-nowrap"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create Team
+              </Button>
+            )}
           </div>
         </div>
         
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'members' | 'teams' | 'active-teams')} className="w-full mb-6">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={(value) => {
+            if (value !== 'create-team') {
+              setShowTeamCreation(false);
+            }
+            setActiveTab(value as 'members' | 'teams' | 'active-teams' | 'create-team');
+          }} 
+          className="w-full mb-6"
+        >
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
             <TabsTrigger value="active-teams">Active Teams</TabsTrigger>
             <TabsTrigger value="members">Find Teammates</TabsTrigger>
             <TabsTrigger value="teams">Find Teams</TabsTrigger>
           </TabsList>
-        
-          <div className="mb-6 mt-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Filter size={18} className="text-muted-foreground" />
-              <span className="text-sm font-medium">Filter by skills:</span>
+
+          {activeTab !== 'create-team' && (
+            <div className="mb-6 mt-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Filter size={18} className="text-muted-foreground" />
+                <span className="text-sm font-medium">Filter by skills:</span>
+                
+                {activeFilters.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={clearFilters}
+                  >
+                    <X size={14} className="mr-1" />
+                    Clear filters
+                  </Button>
+                )}
+              </div>
               
-              {activeFilters.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={clearFilters}
-                >
-                  <X size={14} className="mr-1" />
-                  Clear filters
-                </Button>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {availableFilters.map(filter => (
+                  <Badge
+                    key={filter}
+                    variant={activeFilters.includes(filter) ? "default" : "outline"}
+                    className="cursor-pointer transition-all duration-200"
+                    onClick={() => toggleFilter(filter)}
+                  >
+                    {filter}
+                  </Badge>
+                ))}
+              </div>
             </div>
-            
-            <div className="flex flex-wrap gap-2">
-              {availableFilters.map(filter => (
-                <Badge
-                  key={filter}
-                  variant={activeFilters.includes(filter) ? "default" : "outline"}
-                  className="cursor-pointer transition-all duration-200"
-                  onClick={() => toggleFilter(filter)}
-                >
-                  {filter}
-                </Badge>
-              ))}
-            </div>
-          </div>
+          )}
           
           <TabsContent value="active-teams" className="mt-0">
             <TeamList 
               teams={filteredActiveTeams}
               onJoinRequest={handleJoinRequest}
+              onViewDetails={handleViewTeamDetails}
             />
             
             {filteredActiveTeams.length === 0 && (
@@ -506,6 +821,7 @@ const Explore = () => {
             <TeamList 
               teams={filteredTeams}
               onJoinRequest={handleJoinRequest}
+              onViewDetails={handleViewTeamDetails}
             />
             
             {filteredTeams.length === 0 && (
@@ -528,6 +844,13 @@ const Explore = () => {
                 )}
               </div>
             )}
+          </TabsContent>
+          
+          <TabsContent value="create-team" className="mt-0">
+            <TeamCreation
+              availableMembers={sampleUsers}
+              onTeamCreated={handleTeamCreated}
+            />
           </TabsContent>
         </Tabs>
       </div>
