@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Users, Zap, Brain, Code } from 'lucide-react';
@@ -8,6 +7,14 @@ import { useAuth } from '@/context/AuthContext';
 
 const Home = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect authenticated users to the explore page
+  useEffect(() => {
+    if (user) {
+      navigate('/explore', { replace: true });
+    }
+  }, [user, navigate]);
 
   return (
     <Layout>
