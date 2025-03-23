@@ -92,10 +92,10 @@ const TeamTab: React.FC<TeamTabProps> = ({
       
       const requestMap: Record<string, string> = {};
       if (response.data) {
-        // Fix: Access each item correctly from the array
-        for (const req of response.data) {
+        // Properly handle the response data as an array of TeamJoinRequest objects
+        response.data.forEach((req) => {
           requestMap[req.team_id] = req.status;
-        }
+        });
       }
       
       setJoinRequests(requestMap);

@@ -56,15 +56,14 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Debug function to test permissions - using strong typing for table names
+// Debug functions - simplified types to avoid deep instantiation
 export const testPermissions = async () => {
   const { data: sessionData } = await supabase.auth.getSession();
   console.log("Current session:", sessionData);
   
   try {
-    // Use a valid table name from the Database type
     const { data, error } = await supabase
-      .from('profiles' as TableNames)
+      .from('profiles')
       .select('*')
       .limit(1);
       
@@ -76,10 +75,9 @@ export const testPermissions = async () => {
   }
 };
 
-// Debug function to check database schema - using strong typing for table names
+// Debug function with simplified typing
 export const inspectTableSchema = async (tableName: TableNames) => {
   try {
-    // First check if we can access the table at all
     const { data: tableData, error: tableError } = await supabase
       .from(tableName)
       .select('*')
@@ -90,7 +88,6 @@ export const inspectTableSchema = async (tableName: TableNames) => {
       return { success: false, error: tableError, schema: null };
     }
     
-    // Get information about columns directly from the supabase API
     if (tableData && tableData.length > 0) {
       const sampleRecord = tableData[0];
       const inferredSchema = Object.keys(sampleRecord).map(column => ({
@@ -99,43 +96,29 @@ export const inspectTableSchema = async (tableName: TableNames) => {
       }));
       
       console.log(`Inferred schema for ${tableName}:`, inferredSchema);
-      return { 
-        success: true, 
-        error: null, 
-        schema: inferredSchema,
-        note: 'Schema inferred from sample record' 
-      };
+      return { success: true, error: null, schema: inferredSchema };
     }
     
-    return { 
-      success: true, 
-      error: null, 
-      schema: [],
-      note: 'No sample data available to infer schema' 
-    };
+    return { success: true, error: null, schema: [] };
   } catch (err) {
     console.error(`Error inspecting schema for ${tableName}:`, err);
     return { success: false, error: err, schema: null };
   }
 };
 
-// Debug function to check RLS policies, ignoring system tables
+// Debug function with simplified typing
 export const checkRlsPermissions = async (tableName: TableNames) => {
   try {
-    // First check auth status
     const { data: sessionData } = await supabase.auth.getSession();
     console.log("Current session:", sessionData);
     
-    // Try basic select
     const { data: selectData, error: selectError } = await supabase
       .from(tableName)
       .select('*')
       .limit(5);
       
-    console.log(`SELECT test for ${tableName}:`, selectError ? 'Failed' : 'Success', 
-      selectError ? selectError : `Retrieved ${selectData?.length || 0} rows`);
+    console.log(`SELECT test for ${tableName}:`, selectError ? 'Failed' : 'Success');
     
-    // Try select with auth ID filter  
     const userId = sessionData?.session?.user?.id;
     if (userId) {
       const { data: ownData, error: ownError } = await supabase
@@ -144,16 +127,11 @@ export const checkRlsPermissions = async (tableName: TableNames) => {
         .eq('id', userId)
         .maybeSingle();
         
-      console.log(`SELECT own data test for ${tableName}:`, ownError ? 'Failed' : 'Success',
-        ownError ? ownError : `Data ${ownData ? 'found' : 'not found'}`);
+      console.log(`SELECT own data test for ${tableName}:`, ownError ? 'Failed' : 'Success');
     }
     
-    // For testing insert permissions, we'd need to use the real API
-    // This is just a mock result for demonstration
     const insertError = null;
-    
-    console.log(`INSERT test for ${tableName}:`, insertError ? 'Failed' : 'Success',
-      insertError ? insertError : 'Insert permitted (simulated)');
+    console.log(`INSERT test for ${tableName}:`, insertError ? 'Failed' : 'Success');
       
     return {
       auth: !!sessionData?.session,

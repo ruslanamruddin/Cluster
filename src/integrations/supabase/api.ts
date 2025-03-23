@@ -1,3 +1,4 @@
+
 import { supabase } from './client';
 import { toast } from '@/components/ui/use-toast';
 import { Database } from './types';
@@ -132,7 +133,7 @@ export const supabaseApi = {
       order?: { column: string; ascending?: boolean };
       limit?: number;
     } = {}
-  ): Promise<ApiResponse<T[]>> {
+  ): Promise<ApiResponse<T>> {
     try {
       const { select = '*', filters = {}, order, limit } = options;
       
@@ -159,7 +160,7 @@ export const supabaseApi = {
       
       if (error) throw error;
       
-      return { data: data as T[], error: null, status: 200 };
+      return { data: data as T, error: null, status: 200 };
     } catch (error) {
       return { 
         data: null, 

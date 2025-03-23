@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -64,10 +63,9 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
   const fetchTeams = async () => {
     setIsLoading(true);
     try {
-      const response = await supabaseApi.getMany<Team[]>('teams');
+      const response = await supabaseApi.getMany<Team>('teams');
       if (response.data) {
-        // Fix: correctly handle the response data as Team[]
-        setTeams(response.data);
+        setTeams(response.data as Team[]);
       } else if (response.error) {
         console.error('Error fetching teams:', response.error);
         toast({
@@ -547,7 +545,7 @@ const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      const response = await supabaseApi.getMany<TeamJoinRequest[]>('team_join_requests', {
+      const response = await supabaseApi.getMany<TeamJoinRequest>('team_join_requests', {
         filters: { team_id: team.id, status: 'pending' }
       });
 
@@ -561,7 +559,7 @@ const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({
       }
 
       if (response.data) {
-        setRequests(response.data);
+        setRequests(response.data as TeamJoinRequest[]);
       }
     } catch (error) {
       console.error('Error fetching requests:', error);
