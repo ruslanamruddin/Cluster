@@ -1,6 +1,6 @@
 
 /**
- * Utility functions to transform data between database format and UI format
+ * Utility functions to transform data between database format (snake_case) and UI format (camelCase)
  */
 
 import { Team } from '@/components/TeamList';
@@ -16,11 +16,11 @@ export const transformTeamFromDB = (dbTeam: any): Team => {
     id: dbTeam.id,
     name: dbTeam.name,
     description: dbTeam.description || '',
-    members: [], // This would need to be populated separately
-    projectIdea: dbTeam.project_idea || '',
-    isRecruiting: dbTeam.is_recruiting === true,
-    skillsNeeded: [], // This would need to be populated separately
-    hackathonId: dbTeam.hackathon_id
+    members: dbTeam.members || [], 
+    projectIdea: dbTeam.project_idea || dbTeam.projectIdea || '',
+    isRecruiting: dbTeam.is_recruiting === true || dbTeam.isRecruiting === true,
+    skillsNeeded: dbTeam.skillsNeeded || [], 
+    hackathonId: dbTeam.hackathon_id || dbTeam.hackathonId
   };
 };
 
@@ -61,4 +61,52 @@ export const transformTeamToDB = (team: Partial<Team>): Record<string, any> => {
   }
   
   return dbTeam;
+};
+
+/**
+ * Converts a camelCase team from view to the Team interface
+ * 
+ * @param viewTeam Team object from camelcase_teams view
+ * @returns Team interface-compliant object
+ */
+export const transformViewTeamToInterface = (viewTeam: any): Team => {
+  if (!viewTeam || !viewTeam.team) {
+    console.error('Invalid team data from view:', viewTeam);
+    return {
+      id: '',
+      name: '',
+      description: '',
+      members: [],
+      projectIdea: '',
+      isRecruiting: false,
+      skillsNeeded: []
+    };
+  }
+  
+  const teamData = viewTeam.team;
+  
+  return {
+    id: teamData.id,
+    name: teamData.name,
+    description: teamData.description || '',
+    members: teamData.members || [],
+    projectIdea: teamData.projectIdea || '',
+    isRecruiting: teamData.isRecruiting === true,
+    skillsNeeded: teamData.skillsNeeded || [],
+    hackathonId: teamData.hackathonId
+  };
+};
+
+/**
+ * Transforms a database join request to a normalized format
+ */
+export const transformJoinRequest = (request: any) => {
+  return {
+    id: request.id,
+    teamId: request.team_id,
+    userId: request.user_id,
+    status: request.status,
+    createdAt: request.created_at,
+    updatedAt: request.updated_at
+  };
 };

@@ -19,7 +19,7 @@ export interface Team {
   name: string;
   description: string;
   members: UserProfile[];
-  projectIdea: string;  // Changed from project_idea to match our usage in Teams.tsx
+  projectIdea: string;  
   isRecruiting: boolean;
   skillsNeeded?: string[];
   hackathonId?: string;

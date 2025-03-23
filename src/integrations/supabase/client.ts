@@ -49,7 +49,9 @@ export type FunctionName =
   | 'process_join_request'
   | 'check_if_user_is_admin'
   | 'get_or_create_skill'
-  | 'save_user_skills';
+  | 'save_user_skills'
+  | 'get_team_with_members'
+  | 'get_team_skills_needed';
 
 // Simple record type for debugging
 export type SimpleRecord = Record<string, any>;

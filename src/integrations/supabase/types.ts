@@ -420,6 +420,33 @@ export type Database = {
         }
         Relationships: []
       }
+      team_members_view: {
+        Row: {
+          id: string | null
+          is_admin: boolean | null
+          team_id: string | null
+          user_avatar: string | null
+          user_id: string | null
+          user_name: string | null
+          user_title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_if_user_is_admin: {
@@ -433,6 +460,18 @@ export type Database = {
           skill_name: string
         }
         Returns: string
+      }
+      get_team_skills_needed: {
+        Args: {
+          p_team_id: string
+        }
+        Returns: Json
+      }
+      get_team_with_members: {
+        Args: {
+          p_team_id: string
+        }
+        Returns: Json
       }
       process_join_request: {
         Args: {
