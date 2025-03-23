@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +21,7 @@ const AIConfigForm = () => {
   const [openaiKey, setOpenaiKey] = useState('');
   const [cohereKey, setCohereKey] = useState('');
   const [anthropicKey, setAnthropicKey] = useState('');
+  const [geminiKey, setGeminiKey] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -46,7 +46,7 @@ const AIConfigForm = () => {
       // Check if API keys exist (we don't fetch the actual values for security reasons)
       const { data: keysData, error: keysError } = await supabase
         .functions.invoke('get-settings', {
-          body: { checkKeys: ['OPENAI_API_KEY', 'COHERE_API_KEY', 'ANTHROPIC_API_KEY'] }
+          body: { checkKeys: ['OPENAI_API_KEY', 'COHERE_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY'] }
         });
       
       if (keysError) throw keysError;
@@ -56,6 +56,7 @@ const AIConfigForm = () => {
         if (keysData.OPENAI_API_KEY) setOpenaiKey('••••••••••••••••••••••••••');
         if (keysData.COHERE_API_KEY) setCohereKey('••••••••••••••••••••••••••');
         if (keysData.ANTHROPIC_API_KEY) setAnthropicKey('••••••••••••••••••••••••••');
+        if (keysData.GEMINI_API_KEY) setGeminiKey('••••••••••••••••••••••••••');
       }
     } catch (error) {
       console.error('Error fetching AI settings:', error);
@@ -105,6 +106,14 @@ const AIConfigForm = () => {
         if (anthropicError) throw anthropicError;
       }
 
+      if (geminiKey && !geminiKey.includes('•')) {
+        const { error: geminiError } = await supabase
+          .functions.invoke('set-settings', {
+            body: { key: 'GEMINI_API_KEY', value: geminiKey }
+          });
+        if (geminiError) throw geminiError;
+      }
+
       toast({
         title: 'Settings saved',
         description: 'AI configuration has been updated successfully.',
@@ -148,6 +157,7 @@ const AIConfigForm = () => {
               <SelectItem value="openai">OpenAI</SelectItem>
               <SelectItem value="cohere">Cohere</SelectItem>
               <SelectItem value="anthropic">Anthropic</SelectItem>
+              <SelectItem value="gemini">Google Gemini</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -199,6 +209,23 @@ const AIConfigForm = () => {
             />
             <p className="text-xs text-muted-foreground">
               Get your API key from <a href="https://console.anthropic.com/settings/keys" className="text-primary underline" target="_blank" rel="noopener noreferrer">Anthropic Console</a>
+            </p>
+          </div>
+        )}
+
+        {provider === 'gemini' && (
+          <div className="space-y-2">
+            <Label htmlFor="gemini-key">Google Gemini API Key</Label>
+            <Input
+              id="gemini-key"
+              type="password"
+              value={geminiKey}
+              onChange={(e) => setGeminiKey(e.target.value)}
+              placeholder="Enter your Gemini API key"
+              disabled={isLoading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Get your API key from <a href="https://aistudio.google.com/app/apikey" className="text-primary underline" target="_blank" rel="noopener noreferrer">Google AI Studio</a>
             </p>
           </div>
         )}

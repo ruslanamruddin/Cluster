@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.37.0";
 
@@ -25,6 +24,8 @@ async function analyzeSkillsWithAI(resumeText: string, linkedInUrl: string, addi
     return await analyzeWithCohere(combinedText);
   } else if (aiProvider === "anthropic") {
     return await analyzeWithAnthropic(combinedText);
+  } else if (aiProvider === "gemini") {
+    return await analyzeWithGemini(combinedText);
   } else {
     // Fallback to mock implementation
     return mockAnalyzeSkills(combinedText);
@@ -166,6 +167,62 @@ async function analyzeWithAnthropic(text: string) {
     }
   } catch (error) {
     console.error("Error analyzing with Anthropic:", error);
+    throw error;
+  }
+}
+
+// Gemini-based analysis
+async function analyzeWithGemini(text: string) {
+  const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+  
+  if (!geminiApiKey) {
+    console.error("Gemini API key not found");
+    throw new Error("Gemini API key not configured");
+  }
+  
+  try {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": geminiApiKey
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `Extract technical and soft skills from the following text. Categorize them by proficiency level (beginner, intermediate, expert) and by category (Programming Languages, Web Technologies, Data Science, DevOps, Design, Mobile, Soft Skills). Return only a JSON array with objects containing 'name', 'level', and 'category' properties.
+
+Text: ${text}
+
+Respond only with valid JSON.`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 1024,
+          topP: 0.8,
+          topK: 40
+        }
+      })
+    });
+
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error("Gemini API error:", data.error);
+      throw new Error(`Gemini API error: ${data.error.message}`);
+    }
+
+    // Extract the JSON response from Gemini's text output
+    const content = data.candidates[0].content.parts[0].text;
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    } else {
+      throw new Error("Failed to parse Gemini response as JSON");
+    }
+  } catch (error) {
+    console.error("Error analyzing with Gemini:", error);
     throw error;
   }
 }
