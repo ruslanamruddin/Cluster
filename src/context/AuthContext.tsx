@@ -42,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             title: "Welcome!",
             description: "You've successfully signed in",
           });
+          // No redirect here, Auth component handles the redirect to "/"
         }
       } else if (event === 'SIGNED_OUT') {
         setSession(null);
