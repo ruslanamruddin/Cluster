@@ -1,47 +1,59 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Index from '@/pages/Index';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Home from '@/pages/Home';
 import Auth from '@/pages/Auth';
-import Dashboard from '@/pages/Dashboard';
 import Profile from '@/pages/Profile';
 import Explore from '@/pages/Explore';
 import Teams from '@/pages/Teams';
 import Tasks from '@/pages/Tasks';
-import Schedule from '@/pages/Schedule';
-import Events from '@/pages/Events';
 import AITools from '@/pages/AITools';
-import NotFound from '@/pages/NotFound';
+import ProfileSetup from '@/pages/ProfileSetup';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
-import { AuthProvider } from './context/AuthContext';
-import { HackathonProvider } from './context/HackathonContext';
+import SkillsRequiredRoute from '@/components/Auth/SkillsRequiredRoute';
 import { Toaster } from '@/components/ui/toaster';
-import { AIAssistant } from '@/components/AI';
-import './App.css';
-import AdminPage from './pages/Admin';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { UserProfileProvider } from '@/context/UserProfileContext';
+import { ErrorProvider } from '@/context/ErrorContext';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 function App() {
   return (
-    <AuthProvider>
-      <HackathonProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
-            <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
-            <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
-            <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
-            <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
-            <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster />
-          <AIAssistant />
-        </Router>
-      </HackathonProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <ErrorProvider>
+        <ThemeProvider defaultTheme="dark" storageKey="hackhub-theme">
+          <AuthProvider>
+            <UserProfileProvider>
+              <Router>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/auth" element={<Auth />} />
+                  
+                  {/* Protected Routes */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/profile-setup" element={<ProfileSetup />} />
+                    <Route path="/ai-tools" element={<AITools />} />
+                    <Route path="/explore" element={<Explore />} />
+                    <Route path="/explore/:id" element={<Explore />} />
+
+                    {/* Routes that require skill analysis */}
+                    <Route element={<SkillsRequiredRoute redirectTo="/profile-setup" />}>
+                      <Route path="/teams" element={<Teams />} />
+                      <Route path="/teams/:id" element={<Teams />} />
+                      <Route path="/tasks" element={<Tasks />} />
+                    </Route>
+                  </Route>
+                  
+                  {/* Redirect unknown routes to home */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+                <Toaster />
+              </Router>
+            </UserProfileProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </ErrorProvider>
+    </ErrorBoundary>
   );
 }
 

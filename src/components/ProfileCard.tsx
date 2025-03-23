@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { UserPlus, ExternalLink } from 'lucide-react';
+import { UserPlus, ExternalLink, Brain } from 'lucide-react';
 
 export interface Skill {
   name: string;
@@ -29,18 +28,21 @@ export interface UserProfile {
   bio: string;
   linkedIn?: string;
   github?: string;
+  skillsAnalyzed?: boolean;
 }
 
 interface ProfileCardProps {
   profile: UserProfile;
-  onInvite?: (id: string) => void;
+  onInvite?: (userId: string) => void;
   isTeamMember?: boolean;
+  showSkillsCount?: boolean;
 }
 
 const ProfileCard: React.FC<ProfileCardProps> = ({ 
   profile, 
   onInvite,
-  isTeamMember = false
+  isTeamMember = false,
+  showSkillsCount = false
 }) => {
   const getSkillBadgeColor = (level: Skill['level']) => {
     switch (level) {
@@ -54,6 +56,12 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
         return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
     }
   };
+
+  // Count skills by level
+  const skillCounts = profile.skills.reduce((acc, skill) => {
+    acc[skill.level] = (acc[skill.level] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg border border-border/50">
@@ -83,8 +91,18 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{profile.bio}</p>
+        
+        {profile.skillsAnalyzed && (
+          <div className="mb-2 flex items-center">
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
+              <Brain size={12} />
+              AI-Analyzed Skills
+            </Badge>
+          </div>
+        )}
+        
         <div className="flex flex-wrap gap-1 mt-2">
           {profile.skills.slice(0, 6).map(skill => (
             <Badge 
@@ -99,6 +117,20 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
             <Badge variant="outline">+{profile.skills.length - 6} more</Badge>
           )}
         </div>
+        
+        {showSkillsCount && profile.skills.length > 0 && (
+          <div className="flex gap-2 mt-3 text-xs text-muted-foreground">
+            {skillCounts.expert > 0 && (
+              <span className="text-green-700">{skillCounts.expert} expert</span>
+            )}
+            {skillCounts.intermediate > 0 && (
+              <span className="text-purple-700">{skillCounts.intermediate} intermediate</span>
+            )}
+            {skillCounts.beginner > 0 && (
+              <span className="text-blue-700">{skillCounts.beginner} beginner</span>
+            )}
+          </div>
+        )}
       </CardContent>
       <CardFooter className="pt-1">
         {onInvite && !isTeamMember ? (

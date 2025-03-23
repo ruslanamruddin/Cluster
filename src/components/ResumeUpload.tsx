@@ -16,13 +16,15 @@ import {
   Link as LinkIcon, 
   Upload, 
   FileText, 
-  Loader2 
+  Loader2,
+  Brain 
 } from 'lucide-react';
 import { Skill } from './ProfileCard';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useUserProfile } from '@/context/UserProfileContext';
+import { useSkillAnalysis } from '@/hooks/useSkillAnalysis';
 
 interface ResumeUploadProps {
   onSkillsAnalyzed: (skills: Skill[]) => void;
@@ -31,11 +33,34 @@ interface ResumeUploadProps {
 const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
   const [file, setFile] = useState<File | null>(null);
   const [linkedInUrl, setLinkedInUrl] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [additionalInfo, setAdditionalInfo] = useState('');
-  const [analyzedSkills, setAnalyzedSkills] = useState<Skill[]>([]);
-  const { toast } = useToast();
   const { user } = useAuth();
+  const { skills: savedSkills } = useUserProfile();
+  const { toast } = useToast();
+  
+  const { 
+    isAnalyzing, 
+    analyzedSkills, 
+    analyzeSkills, 
+    saveSkills 
+  } = useSkillAnalysis({
+    onSuccess: (skills) => {
+      // Call parent callback
+      onSkillsAnalyzed(skills);
+      
+      // Save to user profile if logged in
+      if (user) {
+        saveSkills(skills);
+      }
+    }
+  });
+
+  // Pre-populate with any existing skills
+  useEffect(() => {
+    if (savedSkills && savedSkills.length > 0) {
+      onSkillsAnalyzed(savedSkills);
+    }
+  }, [savedSkills, onSkillsAnalyzed]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -62,28 +87,16 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
         resumeText = await file.text();
       }
       
-      // Call the Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('analyze-skills', {
-        body: {
-          resumeText,
-          linkedInUrl,
-          additionalInfo,
-          userId: user?.id // Pass userId if user is logged in
-        }
+      // Call the analyze skills function from our hook
+      await analyzeSkills({
+        resumeText,
+        linkedInUrl,
+        additionalInfo
       });
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      // Update skills and UI
-      const skills = data.skills as Skill[];
-      setAnalyzedSkills(skills);
-      onSkillsAnalyzed(skills);
       
       toast({
         title: "Skills analyzed successfully",
-        description: `We've identified ${skills.length} skills from your information.`,
+        description: `We've identified ${analyzedSkills.length} skills from your information.`,
       });
     } catch (error) {
       console.error('Error analyzing skills:', error);
@@ -113,7 +126,10 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Skill Analysis</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Brain className="h-5 w-5 text-primary" />
+          Skill Analysis
+        </CardTitle>
         <CardDescription>
           Upload your resume or provide your LinkedIn profile to analyze your skills
         </CardDescription>
@@ -195,9 +211,9 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
           <div className="space-y-2 border-t pt-4">
             <Label>Identified Skills</Label>
             <div className="flex flex-wrap gap-2 mt-2">
-              {analyzedSkills.map(skill => (
+              {analyzedSkills.map((skill, index) => (
                 <Badge 
-                  key={skill.name} 
+                  key={index} 
                   variant="secondary"
                   className={getSkillBadgeColor(skill.level)}
                 >
@@ -210,7 +226,7 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
       </CardContent>
       <CardFooter className="flex-col sm:flex-row gap-2 sm:justify-between">
         <div className="text-xs text-muted-foreground">
-          Your data is securely processed and not stored permanently.
+          Your information is analyzed securely using Google's Gemini AI.
           {!user && (
             <span className="ml-1 text-primary">Sign in to save your skills to your profile.</span>
           )}
@@ -227,7 +243,7 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onSkillsAnalyzed }) => {
             </>
           ) : (
             <>
-              <Upload size={16} className="mr-2" />
+              <Brain size={16} className="mr-2" />
               Analyze Skills
             </>
           )}
