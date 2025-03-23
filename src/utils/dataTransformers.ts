@@ -35,3 +35,30 @@ export const transformTeamsFromDB = (dbTeams: any[]): Team[] => {
   
   return dbTeams.map(transformTeamFromDB);
 };
+
+/**
+ * Converts a team from UI format (camelCase) to database format (snake_case)
+ * 
+ * @param team Team object in UI format
+ * @returns Team record in database format
+ */
+export const transformTeamToDB = (team: Partial<Team>): Record<string, any> => {
+  const dbTeam: Record<string, any> = {
+    name: team.name,
+    description: team.description,
+  };
+  
+  if ('projectIdea' in team) {
+    dbTeam.project_idea = team.projectIdea;
+  }
+  
+  if ('isRecruiting' in team) {
+    dbTeam.is_recruiting = team.isRecruiting;
+  }
+  
+  if ('hackathonId' in team) {
+    dbTeam.hackathon_id = team.hackathonId;
+  }
+  
+  return dbTeam;
+};

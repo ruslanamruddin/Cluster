@@ -23,7 +23,7 @@ import TeamTab from '@/components/TeamTab';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, TeamJoinRequest } from '@/integrations/supabase/client';
 import { supabaseApi, showResponseToast } from '@/integrations/supabase/api';
-import { transformTeamsFromDB } from '@/utils/dataTransformers';
+import { transformTeamsFromDB, transformTeamToDB } from '@/utils/dataTransformers';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -116,14 +116,16 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     }
 
     try {
-      const response = await supabaseApi.insert('teams', {
+      const teamData = {
         name: teamName,
         description: teamDescription,
         project_idea: teamProjectIdea,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         is_recruiting: isRecruiting,
-      });
+      };
+
+      const response = await supabaseApi.insert('teams', teamData);
 
       if (response.error) {
         toast({
@@ -170,13 +172,15 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     }
 
     try {
-      const response = await supabaseApi.update('teams', selectedTeam.id, {
+      const teamData = {
         name: teamName,
         description: teamDescription,
         project_idea: teamProjectIdea,
         updated_at: new Date().toISOString(),
         is_recruiting: isRecruiting,
-      });
+      };
+
+      const response = await supabaseApi.update('teams', selectedTeam.id, teamData);
 
       if (response.error) {
         toast({

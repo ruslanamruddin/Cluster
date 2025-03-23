@@ -29,9 +29,26 @@ export type TeamJoinRequest = {
   updated_at: string;
 };
 
-// Use string literal unions for table names to avoid TypeScript issues
-export type TableName = keyof Database['public']['Tables'];
-export type FunctionName = keyof Database['public']['Functions'];
+// Using string literals instead of deep type references
+export type TableName = 
+  | 'teams' 
+  | 'profiles' 
+  | 'team_members' 
+  | 'team_join_requests'
+  | 'skills'
+  | 'user_skills'
+  | 'team_skills_needed'
+  | 'user_profiles'
+  | 'user_roles'
+  | 'hackathons'
+  | 'hackathon_members';
+
+export type FunctionName = 
+  | 'request_to_join_team'
+  | 'process_join_request'
+  | 'check_if_user_is_admin'
+  | 'get_or_create_skill'
+  | 'save_user_skills';
 
 // Simple record type for debugging
 export type SimpleRecord = Record<string, any>;
@@ -148,6 +165,3 @@ export const checkRlsPermissions = async (tableName: string) => {
     return { error: err, auth: false };
   }
 };
-
-// Define a simplified generic type for table rows
-export type TableRow<T extends string> = Record<string, any>;
