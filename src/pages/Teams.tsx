@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -21,9 +22,8 @@ import TeamList from '@/components/TeamList';
 import TeamDashboard from '@/components/TeamDashboard';
 import TeamTab from '@/components/TeamTab';
 import { useAuth } from '@/context/AuthContext';
-import { supabase, JoinRequestResponse } from '@/integrations/supabase/client';
+import { supabase, JoinRequestResponse, TeamJoinRequest } from '@/integrations/supabase/client';
 import { supabaseApi, showResponseToast } from '@/integrations/supabase/api';
-import { Database } from '@/integrations/supabase/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +66,7 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     try {
       const response = await supabaseApi.getMany<Team[]>('teams');
       if (response.data) {
+        // Fix: correctly handle the response data as Team[]
         setTeams(response.data);
       } else if (response.error) {
         console.error('Error fetching teams:', response.error);
@@ -536,6 +537,8 @@ const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({
   const [requests, setRequests] = useState<TeamJoinRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
   
   useEffect(() => {
     fetchRequests();

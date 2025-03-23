@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -5,17 +6,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { Users, UserPlus } from 'lucide-react';
 import { Team } from './TeamList';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, JoinRequestResponse, TeamJoinRequest } from '@/integrations/supabase/client';
 import { supabaseApi } from '@/integrations/supabase/api';
-
-interface TeamJoinRequest {
-  id: string;
-  team_id: string;
-  user_id: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
+import TeamList from './TeamList';
+import TeamDashboard from './TeamDashboard';
 
 interface TeamTabProps {
   teams: Team[];
@@ -98,9 +92,10 @@ const TeamTab: React.FC<TeamTabProps> = ({
       
       const requestMap: Record<string, string> = {};
       if (response.data) {
-        response.data.forEach((req: TeamJoinRequest) => {
+        // Fix: Access each item correctly from the array
+        for (const req of response.data) {
           requestMap[req.team_id] = req.status;
-        });
+        }
       }
       
       setJoinRequests(requestMap);
