@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/context/AuthContext';
@@ -44,20 +45,35 @@ const AdminPage = () => {
           setIsAdmin(!!roleData);
         } else {
           // Fix: properly handle the JSON response from the RPC function
-          // data could be a string or an object with an is_admin property
-          if (typeof data === 'object' && data !== null) {
-            setIsAdmin(data.is_admin === true);
-          } else if (typeof data === 'string') {
-            try {
-              const parsedData = JSON.parse(data);
-              setIsAdmin(parsedData.is_admin === true);
-            } catch (parseError) {
-              console.error('Error parsing admin check response:', parseError);
-              setIsAdmin(false);
+          const extractIsAdmin = () => {
+            // Handle object with is_admin property
+            if (typeof data === 'object' && data !== null) {
+              if ('is_admin' in data) {
+                return Boolean(data.is_admin);
+              }
+              
+              // Handle object without direct is_admin property
+              const jsonStr = JSON.stringify(data);
+              try {
+                const parsedData = JSON.parse(jsonStr);
+                return Boolean(parsedData.is_admin);
+              } catch {
+                return false;
+              }
+            } 
+            // Handle string data (possibly JSON string)
+            else if (typeof data === 'string') {
+              try {
+                const parsedData = JSON.parse(data);
+                return Boolean(parsedData.is_admin);
+              } catch {
+                return false;
+              }
             }
-          } else {
-            setIsAdmin(false);
-          }
+            return false;
+          };
+          
+          setIsAdmin(extractIsAdmin());
         }
       } catch (error) {
         console.error('Error checking admin status:', error);
