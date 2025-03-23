@@ -23,15 +23,29 @@ const AdminPage = () => {
       }
 
       try {
-        // Check if the user is an admin
+        // We need to use a raw query to check if the user is an admin
+        // because the user_roles table might not be in the TypeScript types yet
         const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
+          .rpc('check_if_user_is_admin', { user_id: user.id })
           .single();
 
-        if (error) throw error;
-        setIsAdmin(data?.role === 'admin');
+        if (error) {
+          // Fallback method if the RPC function doesn't exist
+          const { data: roleData, error: roleError } = await supabase
+            .from('user_roles')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('role', 'admin')
+            .maybeSingle();
+
+          if (roleError) {
+            throw roleError;
+          }
+          
+          setIsAdmin(!!roleData);
+        } else {
+          setIsAdmin(!!data?.is_admin);
+        }
       } catch (error) {
         console.error('Error checking admin status:', error);
         toast({
