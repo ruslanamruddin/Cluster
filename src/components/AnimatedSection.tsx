@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface AnimatedSectionProps {
   children: ReactNode;
   className?: string;
-  delay?: 1 | 2 | 3 | 4 | 5;
+  delay?: 1 | 2 | 3 | 4 | 5 | 6 | 7; // Updated to include 6 and 7
   animation?: 'fade-in' | 'slide-up' | 'slide-in-right' | 'scale-in';
 }
 

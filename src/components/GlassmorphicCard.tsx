@@ -6,12 +6,14 @@ interface GlassmorphicCardProps {
   children: ReactNode;
   className?: string;
   variant?: 'default' | 'dark';
+  onClick?: () => void; // Added onClick prop
 }
 
 const GlassmorphicCard = ({ 
   children, 
   className, 
-  variant = 'default' 
+  variant = 'default',
+  onClick
 }: GlassmorphicCardProps) => {
   return (
     <div 
@@ -20,6 +22,7 @@ const GlassmorphicCard = ({
         variant === 'default' ? 'glass' : 'glass-dark',
         className
       )}
+      onClick={onClick} // Added onClick handler
     >
       {children}
     </div>
