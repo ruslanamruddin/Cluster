@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { UserPlus, ExternalLink, Brain, Github } from 'lucide-react';
+import { 
+  Alert,
+  AlertTitle,
+  AlertDescription 
+} from "@/components/ui/alert";
+import { UserPlus, ExternalLink, Brain, Github, AlertTriangle } from 'lucide-react';
 
 export interface Skill {
   name: string;
@@ -36,13 +42,17 @@ interface ProfileCardProps {
   onInvite?: (userId: string) => void;
   isTeamMember?: boolean;
   showSkillsCount?: boolean;
+  showWarning?: boolean;
+  warningMessage?: string;
 }
 
 const ProfileCard: React.FC<ProfileCardProps> = ({ 
   profile, 
   onInvite,
   isTeamMember = false,
-  showSkillsCount = false
+  showSkillsCount = false,
+  showWarning = false,
+  warningMessage = 'This profile has some missing information.'
 }) => {
   const getSkillBadgeColor = (level: Skill['level']) => {
     switch (level) {
@@ -65,6 +75,15 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg border border-border/50">
+      {showWarning && (
+        <Alert variant="warning" className="mx-6 mt-6 mb-0">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle className="text-sm font-medium">Warning</AlertTitle>
+          <AlertDescription className="text-xs">
+            {warningMessage}
+          </AlertDescription>
+        </Alert>
+      )}
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div className="flex space-x-4 items-center">
