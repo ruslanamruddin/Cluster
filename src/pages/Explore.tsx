@@ -18,7 +18,8 @@ import {
   ArrowLeft,
   LightbulbIcon,
   UserPlus,
-  Shield
+  Shield,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { 
@@ -43,7 +44,9 @@ const Explore = () => {
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [showTeamCreation, setShowTeamCreation] = useState(false);
   const [isLoadingTeams, setIsLoadingTeams] = useState(true);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -410,7 +413,64 @@ const Explore = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      setIsLoadingUsers(true);
+      
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          name,
+          title,
+          bio,
+          avatar_url,
+          github,
+          linkedin,
+          user_skills (
+            level,
+            skill_id,
+            skills (
+              id,
+              name
+            )
+          )
+        `);
+      
+      if (profilesError) throw profilesError;
+      
+      const transformedUsers: UserProfile[] = profilesData.map(profile => ({
+        id: profile.id,
+        name: profile.name || 'HackHub Member',
+        title: profile.title || 'HackHub Member',
+        bio: profile.bio || 'No bio provided',
+        avatar: profile.avatar_url || '',
+        github: profile.github || '',
+        linkedIn: profile.linkedin || '',
+        skills: (profile.user_skills || [])
+          .filter((skill: any) => skill?.skills) // Filter out any null skills
+          .map((skill: any) => ({
+            name: skill.skills.name,
+            level: skill.level
+          }))
+      }));
+      
+      console.log('Fetched users with skills:', transformedUsers);
+      setUsers(transformedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast({
+        title: "Failed to load users",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
   useEffect(() => {
+    fetchUsers();
     fetchTeams();
     
     const searchParams = new URLSearchParams(location.search);
@@ -496,7 +556,7 @@ const Explore = () => {
     navigate('/explore');
   };
 
-  const filteredUsers = sampleUsers.filter(user => {
+  const filteredUsers = users.filter(user => {
     const matchesSearch = searchTerm === '' || 
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -860,15 +920,20 @@ const Explore = () => {
 
           <TabsContent value="members" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredUsers.map(user => (
-                <ProfileCard
-                  key={user.id}
-                  profile={user}
-                  onInvite={handleInvite}
-                />
-              ))}
-
-              {filteredUsers.length === 0 && (
+              {isLoadingUsers ? (
+                <div className="col-span-full flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                  <p className="text-muted-foreground">Loading users...</p>
+                </div>
+              ) : filteredUsers.length > 0 ? (
+                filteredUsers.map(user => (
+                  <ProfileCard
+                    key={user.id}
+                    profile={user}
+                    onInvite={handleInvite}
+                  />
+                ))
+              ) : (
                 <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
                   <div className="mb-4 rounded-full bg-muted p-4">
                     <Search className="h-6 w-6 text-muted-foreground" />
