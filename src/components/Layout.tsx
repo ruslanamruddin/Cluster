@@ -2,6 +2,7 @@
 import React, { ReactNode } from 'react';
 import Navbar from './Navbar';
 import { cn } from "@/lib/utils";
+import { useAuth } from '@/context/AuthContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,9 +10,11 @@ interface LayoutProps {
 }
 
 const Layout = ({ children, className }: LayoutProps) => {
+  const { user } = useAuth();
+  
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      {user && <Navbar />}
       <main className={cn("flex-1 transition-all duration-300 ease-in-out", className)}>
         {children}
       </main>
