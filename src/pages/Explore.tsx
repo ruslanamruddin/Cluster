@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -324,7 +323,6 @@ const Explore = () => {
     },
   ];
 
-  // Fetch teams from the database
   const fetchTeams = async () => {
     try {
       setIsLoadingTeams(true);
@@ -361,7 +359,6 @@ const Explore = () => {
       
       if (teamsError) throw teamsError;
       
-      // Transform the data to match our Team interface
       const transformedTeams: Team[] = teamsData.map(teamData => {
         const members: UserProfile[] = teamData.team_members
           .filter((member: any) => member.profiles) // Filter out any null profiles
@@ -391,7 +388,6 @@ const Explore = () => {
       
       setTeams(transformedTeams);
       
-      // If we're looking for a specific team and it's in the database
       if (id) {
         const foundTeam = transformedTeams.find(t => t.id === id);
         if (foundTeam) {
@@ -467,13 +463,15 @@ const Explore = () => {
     members: UserProfile[];
     projectIdea: string;
   }) => {
-    // Refresh the teams list to include the newly created team
     fetchTeams();
     
     setActiveTab('active-teams');
     setShowTeamCreation(false);
     
-    // Toast is already shown in the TeamCreation component
+    toast({
+      title: "Team created",
+      description: "Your team has been successfully created.",
+    });
   };
 
   const handleViewTeamDetails = (team: Team) => {
@@ -934,7 +932,10 @@ const Explore = () => {
           
           <TabsContent value="create-team" className="mt-0">
             {(showTeamCreation || activeTab === 'create-team') && (
-              <TeamCreation onTeamCreated={handleTeamCreated} />
+              <TeamCreation 
+                availableMembers={sampleUsers} 
+                onTeamCreated={handleTeamCreated} 
+              />
             )}
           </TabsContent>
         </Tabs>
