@@ -29,8 +29,9 @@ export type TeamJoinRequest = {
   updated_at: string;
 };
 
-// Simplified type definitions to avoid deep instantiation
-type GenericRecord = Record<string, any>;
+// Supabase table names as a type
+export type TableName = keyof Database['public']['Tables'];
+export type FunctionName = keyof Database['public']['Functions'];
 
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
@@ -54,14 +55,14 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Debug functions with simplified types to avoid deep instantiation
+// Debug functions with type casting to avoid deep instantiation
 export const testPermissions = async () => {
   const { data: sessionData } = await supabase.auth.getSession();
   console.log("Current session:", sessionData);
   
   try {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('profiles' as TableName)
       .select('*')
       .limit(1);
       
@@ -73,11 +74,11 @@ export const testPermissions = async () => {
   }
 };
 
-// Debug function with simplified typing
+// Debug function with type casting
 export const inspectTableSchema = async (tableName: string) => {
   try {
     const { data: tableData, error: tableError } = await supabase
-      .from(tableName)
+      .from(tableName as TableName)
       .select('*')
       .limit(1);
       
@@ -104,14 +105,14 @@ export const inspectTableSchema = async (tableName: string) => {
   }
 };
 
-// Debug function with simplified typing
+// Debug function with type casting
 export const checkRlsPermissions = async (tableName: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     console.log("Current session:", sessionData);
     
     const { data: selectData, error: selectError } = await supabase
-      .from(tableName)
+      .from(tableName as TableName)
       .select('*')
       .limit(5);
       
@@ -120,7 +121,7 @@ export const checkRlsPermissions = async (tableName: string) => {
     const userId = sessionData?.session?.user?.id;
     if (userId) {
       const { data: ownData, error: ownError } = await supabase
-        .from(tableName)
+        .from(tableName as TableName)
         .select('*')
         .eq('id', userId)
         .maybeSingle();
@@ -146,4 +147,4 @@ export const checkRlsPermissions = async (tableName: string) => {
 };
 
 // Define a simplified generic type for table rows
-export type TableRow<T extends string> = GenericRecord;
+export type TableRow<T extends string> = Record<string, any>;

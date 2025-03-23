@@ -1,10 +1,7 @@
-import { supabase } from './client';
+
+import { supabase, TableName, FunctionName } from './client';
 import { toast } from '@/components/ui/use-toast';
 import { Database } from './types';
-
-// Use simplified types to avoid deep instantiation
-type TableNames = string;
-type FunctionNames = string;
 
 /**
  * Generic API response type
@@ -54,7 +51,7 @@ async function sanitizeDataForTable(
     try {
       // First try to infer schema from a sample record
       const { data: sampleData, error } = await supabase
-        .from(table)
+        .from(table as TableName)
         .select('*')
         .limit(1);
       
@@ -95,14 +92,14 @@ export const supabaseApi = {
    * Fetch a record by ID
    */
   async getById<T>(
-    table: TableNames,
+    table: string,
     id: string,
     column: string = 'id',
     select: string = '*'
   ): Promise<ApiResponse<T>> {
     try {
       const { data, error } = await supabase
-        .from(table)
+        .from(table as TableName)
         .select(select)
         .eq(column, id)
         .maybeSingle();
@@ -123,7 +120,7 @@ export const supabaseApi = {
    * Fetch multiple records with optional filters
    */
   async getMany<T>(
-    table: TableNames,
+    table: string,
     options: {
       select?: string;
       filters?: Record<string, any>;
@@ -135,7 +132,7 @@ export const supabaseApi = {
       const { select = '*', filters = {}, order, limit } = options;
       
       let query = supabase
-        .from(table)
+        .from(table as TableName)
         .select(select);
       
       // Apply filters
@@ -171,7 +168,7 @@ export const supabaseApi = {
    * Insert a new record
    */
   async insert<T>(
-    table: TableNames,
+    table: string,
     data: Record<string, any>
   ): Promise<ApiResponse<T>> {
     try {
@@ -182,7 +179,7 @@ export const supabaseApi = {
       
       // Type assertion to satisfy TypeScript
       const { data: record, error } = await supabase
-        .from(table)
+        .from(table as TableName)
         .insert(sanitizedData as any)
         .select()
         .maybeSingle();
@@ -203,7 +200,7 @@ export const supabaseApi = {
    * Update an existing record
    */
   async update<T>(
-    table: TableNames,
+    table: string,
     id: string,
     data: Record<string, any>,
     column: string = 'id'
@@ -219,7 +216,7 @@ export const supabaseApi = {
       
       // Type assertion to satisfy TypeScript
       const { data: record, error } = await supabase
-        .from(table)
+        .from(table as TableName)
         .update(sanitizedData as any)
         .eq(column, id)
         .select()
@@ -241,7 +238,7 @@ export const supabaseApi = {
    * Upsert (insert or update) a record
    */
   async upsert<T>(
-    table: TableNames,
+    table: string,
     data: Record<string, any>,
     options: { onConflict?: string } = {}
   ): Promise<ApiResponse<T>> {
@@ -269,7 +266,7 @@ export const supabaseApi = {
       
       // Proceed with upsert using sanitized data and type casting
       const { data: record, error } = await supabase
-        .from(table)
+        .from(table as TableName)
         .upsert(sanitizedData as any, { 
           onConflict: options.onConflict || 'id',
           ignoreDuplicates: false
@@ -282,7 +279,7 @@ export const supabaseApi = {
       
       // Since we're not returning data on upsert, we need to manually fetch the record
       const { data: updatedRecord, error: fetchError } = await supabase
-        .from(table)
+        .from(table as TableName)
         .select('*')
         .eq('id', data.id)
         .maybeSingle();
@@ -307,13 +304,13 @@ export const supabaseApi = {
    * Delete a record
    */
   async delete(
-    table: TableNames,
+    table: string,
     id: string,
     column: string = 'id'
   ): Promise<ApiResponse<null>> {
     try {
       const { error } = await supabase
-        .from(table)
+        .from(table as TableName)
         .delete()
         .eq(column, id);
       
@@ -333,12 +330,12 @@ export const supabaseApi = {
    * Execute a stored procedure
    */
   async rpc<T>(
-    functionName: FunctionNames,
+    functionName: string,
     params: Record<string, any> = {}
   ): Promise<ApiResponse<T>> {
     try {
       // Type assertion to match Supabase's expected type
-      const { data, error } = await supabase.rpc(functionName, params as any);
+      const { data, error } = await supabase.rpc(functionName as FunctionName, params as any);
       
       if (error) throw error;
       

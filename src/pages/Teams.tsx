@@ -21,7 +21,7 @@ import TeamList from '@/components/TeamList';
 import TeamDashboard from '@/components/TeamDashboard';
 import TeamTab from '@/components/TeamTab';
 import { useAuth } from '@/context/AuthContext';
-import { supabase, JoinRequestResponse, TeamJoinRequest } from '@/integrations/supabase/client';
+import { supabase, TeamJoinRequest } from '@/integrations/supabase/client';
 import { supabaseApi, showResponseToast } from '@/integrations/supabase/api';
 import {
   DropdownMenu,
@@ -253,8 +253,8 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     setSelectedTeam(team);
     setTeamName(team.name);
     setTeamDescription(team.description || '');
-    setTeamProjectIdea(team.projectIdea || '');
-    setIsRecruiting(team.isRecruiting || true);
+    setTeamProjectIdea(team.project_idea || '');
+    setIsRecruiting(team.is_recruiting || true);
     setIsEditTeamOpen(true);
   };
 
@@ -273,7 +273,7 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     const matchesSearchTerm =
       team.name.toLowerCase().includes(searchTermLower) ||
       (team.description && team.description.toLowerCase().includes(searchTermLower)) ||
-      (team.projectIdea && team.projectIdea.toLowerCase().includes(searchTermLower));
+      (team.project_idea && team.project_idea.toLowerCase().includes(searchTermLower));
 
     return matchesSearchTerm;
   });
@@ -675,4 +675,3 @@ const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({
 };
 
 export default Teams;
-
