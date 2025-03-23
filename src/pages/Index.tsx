@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -11,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { Play, UserPlus, Users, LogIn } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import AuthForm from '@/components/Auth/AuthForm';
 
 const Index = () => {
   const [mySkills, setMySkills] = useState<Skill[]>([]);
@@ -208,10 +206,12 @@ const Index = () => {
                 </Button>
               </Link>
             ) : (
-              <Button size="lg" variant="outline" className="gap-2" onClick={() => document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' })}>
-                <LogIn size={18} />
-                Sign In / Register
-              </Button>
+              <Link to="/auth">
+                <Button size="lg" variant="outline" className="gap-2">
+                  <LogIn size={18} />
+                  Sign In / Register
+                </Button>
+              </Link>
             )}
           </div>
         </div>
@@ -228,12 +228,7 @@ const Index = () => {
           />
         </div>
 
-        {!user ? (
-          <div id="auth-section" className="mt-16 mb-10">
-            <h2 className="text-2xl font-bold mb-6 text-center">Join HackSync</h2>
-            <AuthForm />
-          </div>
-        ) : (
+        {user && (
           <div className="mt-16">
             <Tabs defaultValue="analyze" className="w-full">
               <TabsList className="grid w-full md:w-96 mx-auto grid-cols-2">
