@@ -110,6 +110,30 @@ export type Database = {
         }
         Relationships: []
       }
+      settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       skills: {
         Row: {
           created_at: string
@@ -390,7 +414,12 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      camelcase_teams: {
+        Row: {
+          team: Json | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_if_user_is_admin: {
@@ -432,6 +461,12 @@ export type Database = {
           skill_id: string
           user_id: string
         }[]
+      }
+      transform_team_to_camelcase: {
+        Args: {
+          team: Json
+        }
+        Returns: Json
       }
     }
     Enums: {

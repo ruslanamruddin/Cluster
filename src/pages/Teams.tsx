@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -116,14 +117,16 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     }
 
     try {
-      const teamData = {
+      const teamData = transformTeamToDB({
         name: teamName,
         description: teamDescription,
-        project_idea: teamProjectIdea,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        is_recruiting: isRecruiting,
-      };
+        projectIdea: teamProjectIdea,
+        isRecruiting: isRecruiting
+      });
+      
+      // Add timestamps
+      teamData.created_at = new Date().toISOString();
+      teamData.updated_at = new Date().toISOString();
 
       const response = await supabaseApi.insert('teams', teamData);
 
@@ -172,13 +175,15 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     }
 
     try {
-      const teamData = {
+      const teamData = transformTeamToDB({
         name: teamName,
         description: teamDescription,
-        project_idea: teamProjectIdea,
-        updated_at: new Date().toISOString(),
-        is_recruiting: isRecruiting,
-      };
+        projectIdea: teamProjectIdea,
+        isRecruiting: isRecruiting
+      });
+      
+      // Add updated timestamp
+      teamData.updated_at = new Date().toISOString();
 
       const response = await supabaseApi.update('teams', selectedTeam.id, teamData);
 
@@ -279,7 +284,7 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     const matchesSearchTerm =
       team.name.toLowerCase().includes(searchTermLower) ||
       (team.description && team.description.toLowerCase().includes(searchTermLower)) ||
-      (team.project_idea && team.project_idea.toLowerCase().includes(searchTermLower));
+      (team.projectIdea && team.projectIdea.toLowerCase().includes(searchTermLower));
 
     return matchesSearchTerm;
   });

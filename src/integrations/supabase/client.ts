@@ -41,7 +41,8 @@ export type TableName =
   | 'user_profiles'
   | 'user_roles'
   | 'hackathons'
-  | 'hackathon_members';
+  | 'hackathon_members'
+  | 'settings';
 
 export type FunctionName = 
   | 'request_to_join_team'
