@@ -1,5 +1,5 @@
 
-import { supabase } from './client';
+import { supabase, TableName, FunctionName } from './client';
 import { toast } from '@/components/ui/use-toast';
 
 /**
@@ -42,7 +42,7 @@ const schemaCache: Record<string, string[]> = {};
  * Sanitizes data to match table schema
  */
 async function sanitizeDataForTable(
-  table: string, 
+  table: TableName, 
   data: Record<string, any>
 ): Promise<Record<string, any>> {
   // If we don't have schema info for this table yet, try to get it
@@ -91,7 +91,7 @@ export const supabaseApi = {
    * Fetch a record by ID using a simpler type approach
    */
   async getById<T>(
-    table: string,
+    table: TableName,
     id: string,
     column: string = 'id',
     select: string = '*'
@@ -119,7 +119,7 @@ export const supabaseApi = {
    * Fetch multiple records with optional filters using a simpler type approach
    */
   async getMany<T>(
-    table: string,
+    table: TableName,
     options: {
       select?: string;
       filters?: Record<string, any>;
@@ -167,7 +167,7 @@ export const supabaseApi = {
    * Insert a new record using simplified types
    */
   async insert<T>(
-    table: string,
+    table: TableName,
     data: Record<string, any>
   ): Promise<ApiResponse<T>> {
     try {
@@ -176,7 +176,7 @@ export const supabaseApi = {
       
       console.log(`Sanitized insert data for ${table}:`, sanitizedData);
       
-      // Use a type assertion to help TypeScript with the complex types
+      // Use a type assertion to help TypeScript
       const { data: record, error } = await supabase
         .from(table)
         .insert(sanitizedData as any)
@@ -199,7 +199,7 @@ export const supabaseApi = {
    * Update an existing record using simplified types
    */
   async update<T>(
-    table: string,
+    table: TableName,
     id: string,
     data: Record<string, any>,
     column: string = 'id'
@@ -237,7 +237,7 @@ export const supabaseApi = {
    * Upsert (insert or update) a record using simplified types
    */
   async upsert<T>(
-    table: string,
+    table: TableName,
     data: Record<string, any>,
     options: { onConflict?: string } = {}
   ): Promise<ApiResponse<T>> {
@@ -313,7 +313,7 @@ export const supabaseApi = {
    * Delete a record
    */
   async delete(
-    table: string,
+    table: TableName,
     id: string,
     column: string = 'id'
   ): Promise<ApiResponse<null>> {
@@ -339,7 +339,7 @@ export const supabaseApi = {
    * Execute a stored procedure using simplified types
    */
   async rpc<T>(
-    functionName: string,
+    functionName: FunctionName,
     params: Record<string, any> = {}
   ): Promise<ApiResponse<T>> {
     try {

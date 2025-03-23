@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -92,7 +91,6 @@ const TeamTab: React.FC<TeamTabProps> = ({
       
       const requestMap: Record<string, string> = {};
       if (response.data) {
-        // Properly handle the response data as an array of TeamJoinRequest objects
         response.data.forEach((req) => {
           requestMap[req.team_id] = req.status;
         });

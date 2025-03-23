@@ -4,7 +4,6 @@ import Home from '@/pages/Home';
 import Auth from '@/pages/Auth';
 import Profile from '@/pages/Profile';
 import Explore from '@/pages/Explore';
-import Teams from '@/pages/Teams';
 import Tasks from '@/pages/Tasks';
 import AITools from '@/pages/AITools';
 import ProfileSetup from '@/pages/ProfileSetup';
@@ -39,8 +38,6 @@ function App() {
 
                     {/* Routes that require skill analysis */}
                     <Route element={<SkillsRequiredRoute redirectTo="/profile-setup" />}>
-                      <Route path="/teams" element={<Teams />} />
-                      <Route path="/teams/:id" element={<Teams />} />
                       <Route path="/tasks" element={<Tasks />} />
                     </Route>
                   </Route>

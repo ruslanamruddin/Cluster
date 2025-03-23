@@ -9,6 +9,7 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJh
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Simpler types that won't cause TypeScript to go into infinite recursion
 export type JoinRequestResponse = {
   id?: string;
   status?: string;
@@ -29,9 +30,31 @@ export type TeamJoinRequest = {
   updated_at: string;
 };
 
-// Using literal strings instead of complex types to avoid deep type instantiation
-export type TableName = string;
-export type FunctionName = string;
+// Known table names as literal union type to avoid string issues
+export type TableName = 
+  | 'teams' 
+  | 'team_members' 
+  | 'profiles' 
+  | 'team_join_requests' 
+  | 'skills' 
+  | 'team_skills_needed' 
+  | 'user_skills'
+  | 'user_profiles'
+  | 'hackathons'
+  | 'hackathon_members'
+  | 'settings'
+  | 'user_roles';
+
+// Known function names as literal union type
+export type FunctionName = 
+  | 'request_to_join_team' 
+  | 'process_join_request'
+  | 'get_team_with_members'
+  | 'get_team_skills_needed'
+  | 'get_or_create_skill'
+  | 'save_user_skills'
+  | 'check_if_user_is_admin'
+  | 'transform_team_to_camelcase';
 
 // Simple record type for debugging
 export type SimpleRecord = Record<string, any>;
@@ -65,7 +88,7 @@ export const testPermissions = async () => {
   
   try {
     const { data, error } = await supabase
-      .from('profiles')
+      .from('profiles' as TableName)
       .select('*')
       .limit(1);
       
@@ -78,7 +101,7 @@ export const testPermissions = async () => {
 };
 
 // Debug function with simplified types
-export const inspectTableSchema = async (tableName: string) => {
+export const inspectTableSchema = async (tableName: TableName) => {
   try {
     const { data: tableData, error: tableError } = await supabase
       .from(tableName)
@@ -109,7 +132,7 @@ export const inspectTableSchema = async (tableName: string) => {
 };
 
 // Debug function with simplified types
-export const checkRlsPermissions = async (tableName: string) => {
+export const checkRlsPermissions = async (tableName: TableName) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     console.log("Current session:", sessionData);

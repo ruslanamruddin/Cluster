@@ -74,7 +74,6 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
       
       setHackathons(data || []);
       
-      // If there's only one hackathon, select it by default
       if (data && data.length === 1) {
         setSelectedHackathon(data[0].id);
       }
@@ -120,20 +119,10 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
       });
       return;
     }
-    
-    if (selectedMembers.length === 0) {
-      toast({
-        title: "Team members required",
-        description: "Please add at least one team member",
-        variant: "destructive",
-      });
-      return;
-    }
 
     try {
       setIsLoading(true);
       
-      // Create team in Supabase
       const teamData = {
         name: teamName,
         description,
@@ -150,37 +139,34 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
       
       if (teamError) throw teamError;
       
-      // Add team members
-      const teamMembersToInsert = selectedMembers.map((member, index) => ({
+      const teamMemberData = {
         team_id: team.id,
-        user_id: member.id,
-        is_admin: index === 0, // First member is admin
-      }));
+        user_id: user.id,
+        is_admin: true,
+      };
       
       const { error: memberError } = await supabase
         .from('team_members')
-        .insert(teamMembersToInsert);
+        .insert(teamMemberData);
       
       if (memberError) throw memberError;
       
-      // Reset form
       setTeamName('');
       setDescription('');
       setProjectIdea('');
       setSelectedMembers([]);
       setSelectedHackathon('');
       
-      // Call the callback to update UI
       onTeamCreated({
         name: teamName,
         description,
-        members: selectedMembers,
+        members: [{ ...availableMembers.find(m => m.id === user.id)! }],
         projectIdea,
       });
       
       toast({
         title: "Team created successfully",
-        description: `${teamName} has been created with ${selectedMembers.length} members.`,
+        description: `${teamName} has been created. You are the team admin.`,
       });
       
     } catch (error) {
