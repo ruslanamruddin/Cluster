@@ -55,3 +55,105 @@ export const testPermissions = async () => {
     return { success: false, error: err };
   }
 };
+
+// Debug function to check database schema
+export const inspectTableSchema = async (tableName: string) => {
+  try {
+    // First check if we can access the table at all
+    const { data: tableData, error: tableError } = await supabase
+      .from(tableName)
+      .select('*')
+      .limit(1);
+      
+    if (tableError) {
+      console.error(`Error accessing table ${tableName}:`, tableError);
+      return { success: false, error: tableError, schema: null };
+    }
+    
+    // Get the table definition from the PostgreSQL information schema
+    const { data: schemaData, error: schemaError } = await supabase
+      .rpc('get_table_definition', { table_name: tableName });
+    
+    if (schemaError) {
+      console.error(`Error getting schema for ${tableName}:`, schemaError);
+      
+      // Alternative approach: infer schema from a record if available
+      if (tableData && tableData.length > 0) {
+        const sampleRecord = tableData[0];
+        const inferredSchema = Object.keys(sampleRecord).map(column => ({
+          column_name: column,
+          data_type: typeof sampleRecord[column]
+        }));
+        
+        console.log(`Inferred schema for ${tableName}:`, inferredSchema);
+        return { 
+          success: true, 
+          error: null, 
+          schema: inferredSchema,
+          note: 'Schema inferred from sample record' 
+        };
+      }
+      
+      return { success: false, error: schemaError, schema: null };
+    }
+    
+    console.log(`Schema for ${tableName}:`, schemaData);
+    return { success: true, error: null, schema: schemaData };
+  } catch (err) {
+    console.error(`Error inspecting schema for ${tableName}:`, err);
+    return { success: false, error: err, schema: null };
+  }
+};
+
+// Debug function to check RLS policies
+export const checkRlsPermissions = async (tableName: string) => {
+  try {
+    // First check auth status
+    const { data: sessionData } = await supabase.auth.getSession();
+    console.log("Current session:", sessionData);
+    
+    // Try basic select
+    const { data: selectData, error: selectError } = await supabase
+      .from(tableName)
+      .select('*')
+      .limit(5);
+      
+    console.log(`SELECT test for ${tableName}:`, selectError ? 'Failed' : 'Success', 
+      selectError ? selectError : `Retrieved ${selectData?.length || 0} rows`);
+    
+    // Try select with auth ID filter  
+    const userId = sessionData?.session?.user?.id;
+    if (userId) {
+      const { data: ownData, error: ownError } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      console.log(`SELECT own data test for ${tableName}:`, ownError ? 'Failed' : 'Success',
+        ownError ? ownError : `Data ${ownData ? 'found' : 'not found'}`);
+    }
+    
+    // Try insert (using a temporary unique ID that will be rolled back)
+    const tempId = userId || 'temp_' + Date.now();
+    const { error: insertError } = await supabase.rpc('test_insert_permission', {
+      p_table: tableName,
+      p_user_id: tempId
+    });
+    
+    console.log(`INSERT test for ${tableName}:`, insertError ? 'Failed' : 'Success',
+      insertError ? insertError : 'Insert permitted');
+      
+    return {
+      auth: !!sessionData?.session,
+      userId: sessionData?.session?.user?.id,
+      canSelect: !selectError,
+      canSelectOwn: userId ? true : null,
+      canInsert: !insertError,
+      error: selectError || insertError
+    };
+  } catch (err) {
+    console.error(`RLS check error for ${tableName}:`, err);
+    return { error: err, auth: false };
+  }
+};

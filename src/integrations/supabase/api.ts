@@ -33,6 +33,56 @@ export const handleSupabaseError = (error: any, customMessage?: string): string 
 };
 
 /**
+ * Simple cache to store known table column information
+ */
+const schemaCache: Record<string, string[]> = {};
+
+/**
+ * Sanitizes data to match table schema
+ */
+async function sanitizeDataForTable(
+  table: string, 
+  data: Record<string, any>
+): Promise<Record<string, any>> {
+  // If we don't have schema info for this table yet, try to get it
+  if (!schemaCache[table]) {
+    try {
+      // First try to infer schema from a sample record
+      const { data: sampleData, error } = await supabase
+        .from(table)
+        .select('*')
+        .limit(1);
+      
+      if (!error && sampleData && sampleData.length > 0) {
+        schemaCache[table] = Object.keys(sampleData[0]);
+        console.log(`Schema for ${table} cached:`, schemaCache[table]);
+      }
+    } catch (e) {
+      console.error(`Failed to infer schema for ${table}:`, e);
+    }
+  }
+  
+  // If we have schema info, sanitize the data
+  if (schemaCache[table] && schemaCache[table].length > 0) {
+    const sanitized: Record<string, any> = {};
+    
+    // Only include fields that exist in the schema
+    Object.keys(data).forEach(key => {
+      if (schemaCache[table].includes(key)) {
+        sanitized[key] = data[key];
+      } else {
+        console.warn(`Column '${key}' not found in '${table}' schema, removing it`);
+      }
+    });
+    
+    return sanitized;
+  }
+  
+  // If we don't have schema info, return the original data
+  return data;
+}
+
+/**
  * Wrapper for Supabase database operations with consistent error handling
  */
 export const supabaseApi = {
@@ -120,9 +170,14 @@ export const supabaseApi = {
     data: Record<string, any>
   ): Promise<ApiResponse<T>> {
     try {
+      // Sanitize data to match table schema
+      const sanitizedData = await sanitizeDataForTable(table, data);
+      
+      console.log(`Sanitized insert data for ${table}:`, sanitizedData);
+      
       const { data: record, error } = await supabase
         .from(table)
-        .insert(data)
+        .insert(sanitizedData)
         .select()
         .single();
       
@@ -148,12 +203,17 @@ export const supabaseApi = {
     column: string = 'id'
   ): Promise<ApiResponse<T>> {
     try {
+      // Sanitize data to match table schema
+      const sanitizedData = await sanitizeDataForTable(table, {
+        ...data,
+        updated_at: new Date().toISOString()
+      });
+      
+      console.log(`Sanitized update data for ${table}:`, sanitizedData);
+      
       const { data: record, error } = await supabase
         .from(table)
-        .update({
-          ...data,
-          updated_at: new Date().toISOString()
-        })
+        .update(sanitizedData)
         .eq(column, id)
         .select()
         .single();
@@ -192,12 +252,18 @@ export const supabaseApi = {
         };
       }
       
+      // Sanitize data to match table schema
+      const sanitizedData = await sanitizeDataForTable(table, {
+        ...data,
+        updated_at: new Date().toISOString()
+      });
+      
+      console.log(`Sanitized data for ${table}:`, sanitizedData);
+      
+      // Proceed with upsert using sanitized data
       const { data: record, error } = await supabase
         .from(table)
-        .upsert({
-          ...data,
-          updated_at: new Date().toISOString()
-        }, { 
+        .upsert(sanitizedData, { 
           onConflict: options.onConflict || 'id',
           returning: 'minimal'  // Changed to minimal to avoid selection errors
         });
