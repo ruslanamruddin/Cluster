@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseApi } from '@/integrations/supabase/api';
 import { Skill } from '@/components/ProfileCard';
 
 interface UserProfileState {
@@ -38,21 +39,22 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       try {
         // Check if user has profile data with skills in Supabase
-        const { data, error } = await supabase
-          .from('user_profiles')
-          .select('skills, has_completed_skill_analysis')
-          .eq('user_id', user.id)
-          .single();
+        const response = await supabaseApi.getById(
+          'user_profiles',
+          user.id,
+          'user_id',
+          'skills, has_completed_skill_analysis'
+        );
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching user profile:', error);
-          throw error;
+        if (response.error && response.status !== 404) {
+          console.error('Error fetching user profile:', response.error);
+          throw new Error(response.error);
         }
 
-        if (data) {
+        if (response.data) {
           setState({
-            hasCompletedSkillAnalysis: data.has_completed_skill_analysis || false,
-            skills: data.skills || [],
+            hasCompletedSkillAnalysis: response.data.has_completed_skill_analysis || false,
+            skills: response.data.skills || [],
             isLoading: false,
           });
         } else {
@@ -78,34 +80,38 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (!user) return;
 
     try {
-      // Get existing profile or create new one
-      const { data: existingProfile } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      // Check if profile exists
+      const existingProfile = await supabaseApi.getById(
+        'user_profiles',
+        user.id,
+        'user_id',
+        'id'
+      );
 
-      if (existingProfile) {
-        // Update existing profile
-        await supabase
-          .from('user_profiles')
-          .update({
-            skills,
-            has_completed_skill_analysis: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', user.id);
+      const profileData = {
+        user_id: user.id,
+        skills,
+        has_completed_skill_analysis: true,
+        updated_at: new Date().toISOString()
+      };
+
+      // If profile exists, update it; otherwise, create a new one
+      if (existingProfile.data) {
+        await supabaseApi.update(
+          'user_profiles',
+          user.id,
+          profileData,
+          'user_id'
+        );
       } else {
-        // Create new profile
-        await supabase
-          .from('user_profiles')
-          .insert({
-            user_id: user.id,
-            skills,
-            has_completed_skill_analysis: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+        // Add created_at for new profiles
+        await supabaseApi.insert(
+          'user_profiles',
+          {
+            ...profileData,
+            created_at: new Date().toISOString()
+          }
+        );
       }
 
       // Update local state
@@ -121,7 +127,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // Reset skill analysis status (for testing purposes)
-  const resetSkillAnalysis = () => {
+  const resetSkillAnalysis = async () => {
     setState(prev => ({
       ...prev,
       hasCompletedSkillAnalysis: false,
@@ -129,17 +135,19 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }));
     
     if (user) {
-      supabase
-        .from('user_profiles')
-        .update({
+      const response = await supabaseApi.update(
+        'user_profiles',
+        user.id,
+        {
           has_completed_skill_analysis: false,
           skills: [],
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id)
-        .then(({ error }) => {
-          if (error) console.error('Error resetting skill analysis:', error);
-        });
+        },
+        'user_id'
+      );
+      
+      if (response.error) {
+        console.error('Error resetting skill analysis:', response.error);
+      }
     }
   };
 

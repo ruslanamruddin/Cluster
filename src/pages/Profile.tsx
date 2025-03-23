@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -17,6 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useUserProfile } from '@/context/UserProfileContext';
 import { supabase } from '@/integrations/supabase/client';
 import AvatarUpload from '@/components/AvatarUpload';
+import { supabaseApi, showResponseToast } from '@/integrations/supabase/api';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -101,42 +101,31 @@ const Profile = () => {
   const handleSaveProfile = async () => {
     if (!user) return;
     
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          name: formData.name,
-          title: formData.title,
-          bio: formData.bio,
-          linkedin_url: formData.linkedIn,
-          github_url: formData.github,
-          updated_at: new Date()
-        });
-      
-      if (error) throw error;
-      
-      if (userProfile) {
-        setUserProfile({
-          ...userProfile,
-          name: formData.name,
-          title: formData.title,
-          bio: formData.bio,
-          linkedIn: formData.linkedIn,
-          github: formData.github
-        });
-      }
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated."
-      });
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: "Update failed",
-        description: "We couldn't update your profile. Please try again.",
-        variant: "destructive"
+    const profileData = {
+      id: user.id,
+      name: formData.name,
+      title: formData.title,
+      bio: formData.bio,
+      linkedin_url: formData.linkedIn,
+      github_url: formData.github,
+      updated_at: new Date().toISOString()
+    };
+    
+    const response = await supabaseApi.upsert('profiles', profileData);
+    
+    const success = showResponseToast(response, {
+      success: "Your profile has been successfully updated.",
+      error: "Update failed"
+    });
+    
+    if (success && userProfile && response.data) {
+      setUserProfile({
+        ...userProfile,
+        name: formData.name,
+        title: formData.title,
+        bio: formData.bio,
+        linkedIn: formData.linkedIn,
+        github: formData.github
       });
     }
   };
@@ -144,28 +133,21 @@ const Profile = () => {
   const handleAvatarUpload = async (url: string) => {
     if (!user || !userProfile) return;
     
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          avatar_url: url,
-          updated_at: new Date()
-        })
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      
+    const response = await supabaseApi.update(
+      'profiles',
+      user.id,
+      { avatar_url: url }
+    );
+    
+    const success = showResponseToast(response, {
+      success: "Avatar updated successfully",
+      error: "Avatar update failed"
+    });
+    
+    if (success && userProfile) {
       setUserProfile({
         ...userProfile,
         avatar: url
-      });
-      
-    } catch (error) {
-      console.error('Error updating avatar URL:', error);
-      toast({
-        title: "Avatar update failed",
-        description: "We couldn't update your avatar. Please try again.",
-        variant: "destructive"
       });
     }
   };

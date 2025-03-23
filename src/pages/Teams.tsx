@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -29,6 +28,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, JoinRequestResponse, ProcessRequestResponse } from '@/integrations/supabase/client';
+import { supabaseApi, showResponseToast } from '@/integrations/supabase/api';
 
 interface TeamMember {
   id: string;
@@ -158,18 +158,20 @@ const Teams = () => {
     if (!user || !id) return;
     
     try {
-      const { data, error } = await supabase
-        .from('team_join_requests')
-        .select('status')
-        .eq('team_id', id)
-        .eq('user_id', user.id)
-        .single();
+      const response = await supabaseApi.getMany('team_join_requests', {
+        select: 'status',
+        filters: {
+          team_id: id,
+          user_id: user.id
+        }
+      });
       
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (response.error && response.status !== 404) {
+        throw new Error(response.error);
       }
       
-      setJoinRequestStatus(data?.status || null);
+      // Since getMany returns an array, we need to get the first item
+      setJoinRequestStatus(response.data && response.data.length > 0 ? response.data[0].status : null);
     } catch (error) {
       console.error('Error checking join request status:', error);
     }
@@ -179,9 +181,8 @@ const Teams = () => {
     if (!user || !id) return;
     
     try {
-      const { data, error } = await supabase
-        .from('team_join_requests')
-        .select(`
+      const response = await supabaseApi.getMany('team_join_requests', {
+        select: `
           id,
           status,
           created_at,
@@ -191,13 +192,16 @@ const Teams = () => {
             avatar_url,
             title
           )
-        `)
-        .eq('team_id', id)
-        .eq('status', 'pending');
+        `,
+        filters: {
+          team_id: id,
+          status: 'pending'
+        }
+      });
       
-      if (error) throw error;
+      if (response.error) throw new Error(response.error);
       
-      setPendingRequests(data || []);
+      setPendingRequests(response.data || []);
     } catch (error) {
       console.error('Error fetching pending requests:', error);
     }
@@ -207,17 +211,13 @@ const Teams = () => {
     if (!user || !id) return;
     
     try {
-      const { data, error } = await supabase.rpc(
+      const response = await supabaseApi.rpc<JoinRequestResponse>(
         'request_to_join_team',
         {
           p_team_id: id,
           p_user_id: user.id
         }
       );
-      
-      if (error) throw error;
-      
-      const response = data as JoinRequestResponse;
       
       if (response.error) {
         toast({
@@ -248,7 +248,7 @@ const Teams = () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase.rpc(
+      const response = await supabaseApi.rpc<ProcessRequestResponse>(
         'process_join_request',
         {
           p_request_id: requestId,
@@ -256,10 +256,6 @@ const Teams = () => {
           p_admin_user_id: user.id
         }
       );
-      
-      if (error) throw error;
-      
-      const response = data as ProcessRequestResponse;
       
       if (response.error) {
         toast({
@@ -272,7 +268,7 @@ const Teams = () => {
       
       toast({
         title: status === 'approved' ? "Request Approved" : "Request Rejected",
-        description: response.message || `Request ${status} successfully`,
+        description: response.data?.message || `Request ${status} successfully`,
       });
       
       fetchPendingRequests();

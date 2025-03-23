@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import TeamList from './TeamList';
 import TeamDashboard from './TeamDashboard';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, JoinRequestResponse } from '@/integrations/supabase/client';
+import { supabaseApi, showResponseToast } from '@/integrations/supabase/api';
 
 interface TeamTabProps {
   teams: Team[];
@@ -83,16 +83,16 @@ const TeamTab: React.FC<TeamTabProps> = ({
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
-        .from('team_join_requests')
-        .select('team_id, status')
-        .eq('user_id', user.id);
+      const response = await supabaseApi.getMany('team_join_requests', {
+        select: 'team_id, status',
+        filters: { user_id: user.id }
+      });
       
-      if (error) throw error;
+      if (response.error) throw new Error(response.error);
       
       const requestMap: Record<string, string> = {};
-      if (data) {
-        data.forEach(req => {
+      if (response.data) {
+        response.data.forEach(req => {
           requestMap[req.team_id] = req.status;
         });
       }
@@ -110,17 +110,13 @@ const TeamTab: React.FC<TeamTabProps> = ({
     }
     
     try {
-      const { data, error } = await supabase.rpc(
+      const response = await supabaseApi.rpc<JoinRequestResponse>(
         'request_to_join_team',
         { 
           p_team_id: teamId,
           p_user_id: user.id
         }
       );
-      
-      if (error) throw error;
-      
-      const response = data as JoinRequestResponse;
       
       if (response.error) {
         toast({
