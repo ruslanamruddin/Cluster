@@ -9,46 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skill, UserProfile } from '@/components/ProfileCard';
 import { FileText, Users, CheckSquare } from 'lucide-react';
 
-// Sample data
-const sampleTeamMembers: UserProfile[] = [
-  {
-    id: '1',
-    name: 'Alex Johnson',
-    title: 'Frontend Developer',
-    skills: [
-      { name: 'React', level: 'expert' },
-      { name: 'TypeScript', level: 'intermediate' },
-      { name: 'UI/UX', level: 'intermediate' }
-    ],
-    bio: 'Passionate frontend developer with 3 years of experience building web applications.',
-    linkedIn: 'https://linkedin.com/in/alexjohnson'
-  },
-  {
-    id: '2',
-    name: 'Sam Rodriguez',
-    title: 'Backend Engineer',
-    skills: [
-      { name: 'Node.js', level: 'expert' },
-      { name: 'Python', level: 'intermediate' },
-      { name: 'Database Design', level: 'expert' }
-    ],
-    bio: 'Backend developer specializing in API development and database optimization.',
-    github: 'https://github.com/samrodriguez'
-  },
-  {
-    id: '3',
-    name: 'Taylor Kim',
-    title: 'Full Stack Developer',
-    skills: [
-      { name: 'JavaScript', level: 'expert' },
-      { name: 'React', level: 'intermediate' },
-      { name: 'Node.js', level: 'beginner' }
-    ],
-    bio: 'Full stack developer with a focus on creating seamless user experiences.',
-    linkedIn: 'https://linkedin.com/in/taylorkim'
-  }
-];
-
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [userSkills, setUserSkills] = useState<Skill[]>([]);
@@ -71,7 +31,7 @@ const Dashboard = () => {
     };
     
     // Add user to team members
-    setTeamMembers([userProfile, ...sampleTeamMembers]);
+    setTeamMembers([userProfile]);
     
     // Automatically move to team tab after skills analysis
     setActiveTab('team');
@@ -131,7 +91,6 @@ const Dashboard = () => {
           
           <TabsContent value="team" className="space-y-6 animate-fade-in">
             <TeamCreation 
-              availableMembers={sampleTeamMembers} 
               onTeamCreated={handleTeamCreated} 
             />
           </TabsContent>
