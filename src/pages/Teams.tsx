@@ -63,9 +63,9 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
   const fetchTeams = async () => {
     setIsLoading(true);
     try {
-      const response = await supabaseApi.getMany<Team>('teams');
+      const response = await supabaseApi.getMany<Team[]>('teams');
       if (response.data) {
-        setTeams(response.data as Team[]);
+        setTeams(Array.isArray(response.data) ? response.data : []);
       } else if (response.error) {
         console.error('Error fetching teams:', response.error);
         toast({
@@ -545,7 +545,7 @@ const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      const response = await supabaseApi.getMany<TeamJoinRequest>('team_join_requests', {
+      const response = await supabaseApi.getMany<TeamJoinRequest[]>('team_join_requests', {
         filters: { team_id: team.id, status: 'pending' }
       });
 
@@ -559,7 +559,7 @@ const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({
       }
 
       if (response.data) {
-        setRequests(response.data as TeamJoinRequest[]);
+        setRequests(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Error fetching requests:', error);
@@ -675,3 +675,4 @@ const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({
 };
 
 export default Teams;
+

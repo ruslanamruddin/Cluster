@@ -29,10 +29,8 @@ export type TeamJoinRequest = {
   updated_at: string;
 };
 
-type Tables = Database['public']['Tables'];
-type TableNames = keyof Tables;
-type Functions = Database['public']['Functions'];
-type FunctionNames = keyof Functions;
+// Simplified type definitions to avoid deep instantiation
+type GenericRecord = Record<string, any>;
 
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
@@ -56,7 +54,7 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Debug functions - simplified types to avoid deep instantiation
+// Debug functions with simplified types to avoid deep instantiation
 export const testPermissions = async () => {
   const { data: sessionData } = await supabase.auth.getSession();
   console.log("Current session:", sessionData);
@@ -76,7 +74,7 @@ export const testPermissions = async () => {
 };
 
 // Debug function with simplified typing
-export const inspectTableSchema = async (tableName: TableNames) => {
+export const inspectTableSchema = async (tableName: string) => {
   try {
     const { data: tableData, error: tableError } = await supabase
       .from(tableName)
@@ -107,7 +105,7 @@ export const inspectTableSchema = async (tableName: TableNames) => {
 };
 
 // Debug function with simplified typing
-export const checkRlsPermissions = async (tableName: TableNames) => {
+export const checkRlsPermissions = async (tableName: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     console.log("Current session:", sessionData);
@@ -147,4 +145,5 @@ export const checkRlsPermissions = async (tableName: TableNames) => {
   }
 };
 
-export type TableRow<T extends TableNames> = Database['public']['Tables'][T]['Row'];
+// Define a simplified generic type for table rows
+export type TableRow<T extends string> = GenericRecord;

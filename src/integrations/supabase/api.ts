@@ -1,13 +1,10 @@
-
 import { supabase } from './client';
 import { toast } from '@/components/ui/use-toast';
 import { Database } from './types';
-import { Json } from './types';
 
-type Tables = Database['public']['Tables'];
-type TableNames = keyof Tables;
-type Functions = Database['public']['Functions'];
-type FunctionNames = keyof Functions;
+// Use simplified types to avoid deep instantiation
+type TableNames = string;
+type FunctionNames = string;
 
 /**
  * Generic API response type
@@ -48,8 +45,8 @@ const schemaCache: Record<string, string[]> = {};
 /**
  * Sanitizes data to match table schema
  */
-async function sanitizeDataForTable<T extends TableNames>(
-  table: T, 
+async function sanitizeDataForTable(
+  table: string, 
   data: Record<string, any>
 ): Promise<Record<string, any>> {
   // If we don't have schema info for this table yet, try to get it
