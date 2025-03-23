@@ -3,7 +3,7 @@ import { supabase, TableName, FunctionName } from './client';
 import { toast } from '@/components/ui/use-toast';
 
 /**
- * Generic API response type
+ * Very simple API response type
  */
 export interface ApiResponse<T = any> {
   data: T | null;
@@ -84,13 +84,13 @@ async function sanitizeDataForTable(
 }
 
 /**
- * Wrapper for Supabase database operations with consistent error handling
+ * Super simplified Supabase API wrapper
  */
 export const supabaseApi = {
   /**
-   * Fetch a record by ID using a simpler type approach
+   * Fetch a record by ID
    */
-  async getById<T>(
+  async getById<T = any>(
     table: TableName,
     id: string,
     column: string = 'id',
@@ -118,7 +118,7 @@ export const supabaseApi = {
   /**
    * Fetch multiple records with optional filters
    */
-  async getMany<T>(
+  async getMany<T = any>(
     table: TableName,
     options: {
       select?: string;
@@ -164,9 +164,9 @@ export const supabaseApi = {
   },
   
   /**
-   * Insert a new record with simplified types
+   * Insert a new record
    */
-  async insert<T>(
+  async insert<T = any>(
     table: TableName,
     data: Record<string, any>
   ): Promise<ApiResponse<T>> {
@@ -176,10 +176,9 @@ export const supabaseApi = {
       
       console.log(`Sanitized insert data for ${table}:`, sanitizedData);
       
-      // Use any type to bypass TypeScript's deep instantiation
       const { data: record, error } = await supabase
         .from(table)
-        .insert(sanitizedData as any)
+        .insert(sanitizedData)
         .select()
         .maybeSingle();
       
@@ -196,9 +195,9 @@ export const supabaseApi = {
   },
   
   /**
-   * Update an existing record with simplified types
+   * Update an existing record
    */
-  async update<T>(
+  async update<T = any>(
     table: TableName,
     id: string,
     data: Record<string, any>,
@@ -213,10 +212,9 @@ export const supabaseApi = {
       
       console.log(`Sanitized update data for ${table}:`, sanitizedData);
       
-      // Use any type to bypass TypeScript's deep instantiation
       const { data: record, error } = await supabase
         .from(table)
-        .update(sanitizedData as any)
+        .update(sanitizedData)
         .eq(column, id)
         .select()
         .maybeSingle();
@@ -234,9 +232,9 @@ export const supabaseApi = {
   },
   
   /**
-   * Upsert (insert or update) a record with simplified types
+   * Upsert (insert or update) a record
    */
-  async upsert<T>(
+  async upsert<T = any>(
     table: TableName,
     data: Record<string, any>,
     options: { onConflict?: string } = {}
@@ -263,10 +261,9 @@ export const supabaseApi = {
       
       console.log(`Sanitized data for ${table}:`, sanitizedData);
       
-      // Use any type to bypass TypeScript's deep instantiation
       const { data: record, error } = await supabase
         .from(table)
-        .upsert(sanitizedData as any, { 
+        .upsert(sanitizedData, { 
           onConflict: options.onConflict || 'id',
           ignoreDuplicates: false
         })
@@ -336,15 +333,14 @@ export const supabaseApi = {
   },
   
   /**
-   * Execute a stored procedure with simplified types
+   * Execute a stored procedure
    */
-  async rpc<T>(
+  async rpc<T = any>(
     functionName: FunctionName,
     params: Record<string, any> = {}
   ): Promise<ApiResponse<T>> {
     try {
-      // Use any type to bypass TypeScript's deep instantiation
-      const { data, error } = await supabase.rpc(functionName, params as any);
+      const { data, error } = await supabase.rpc(functionName, params);
       
       if (error) throw error;
       

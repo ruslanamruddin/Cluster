@@ -9,55 +9,17 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJh
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Simple response types that won't cause TypeScript to go into infinite recursion
-export type JoinRequestResponse = {
-  id?: string;
-  status?: string;
-  error?: string;
-};
+// Simple string type for table names
+export type TableName = string;
 
-export type ProcessRequestResponse = {
-  message?: string;
-  error?: string;
-};
+// Simple string type for function names
+export type FunctionName = string;
 
-export type TeamJoinRequest = {
-  id: string;
-  team_id: string;
-  user_id: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-};
-
-// String literal type for table names to avoid type errors
-export type TableName = 
-  | 'teams' 
-  | 'team_members' 
-  | 'profiles' 
-  | 'team_join_requests' 
-  | 'skills' 
-  | 'team_skills_needed' 
-  | 'user_skills'
-  | 'user_profiles'
-  | 'hackathons'
-  | 'hackathon_members'
-  | 'settings'
-  | 'user_roles';
-
-// String literal type for function names
-export type FunctionName = 
-  | 'request_to_join_team' 
-  | 'process_join_request'
-  | 'get_team_with_members'
-  | 'get_team_skills_needed'
-  | 'get_or_create_skill'
-  | 'save_user_skills'
-  | 'check_if_user_is_admin'
-  | 'transform_team_to_camelcase';
-
-// Simple record type
-export type SimpleRecord = Record<string, any>;
+// Simple types for responses
+export type JoinRequestResponse = any;
+export type ProcessRequestResponse = any;
+export type TeamJoinRequest = any;
+export type SimpleRecord = any;
 
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
@@ -81,14 +43,14 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Debug function with simple types
-export const testPermissions = async (): Promise<SimpleRecord> => {
+// Debug function with super simple types
+export const testPermissions = async (): Promise<{ success: boolean; error?: any; data?: any }> => {
   const { data: sessionData } = await supabase.auth.getSession();
   console.log("Current session:", sessionData);
   
   try {
     const { data, error } = await supabase
-      .from('profiles' as TableName)
+      .from('profiles')
       .select('*')
       .limit(1);
       
@@ -100,8 +62,8 @@ export const testPermissions = async (): Promise<SimpleRecord> => {
   }
 };
 
-// Debug function with simple types
-export const inspectTableSchema = async (tableName: TableName): Promise<SimpleRecord> => {
+// Debug function with super simple types
+export const inspectTableSchema = async (tableName: string): Promise<{ success: boolean; error?: any; schema?: any; note?: string }> => {
   try {
     const { data: tableData, error: tableError } = await supabase
       .from(tableName)
@@ -131,8 +93,8 @@ export const inspectTableSchema = async (tableName: TableName): Promise<SimpleRe
   }
 };
 
-// Debug function with simple types
-export const checkRlsPermissions = async (tableName: TableName): Promise<SimpleRecord> => {
+// Debug function with super simple types
+export const checkRlsPermissions = async (tableName: string): Promise<{ auth?: boolean; userId?: string; canSelect?: boolean; canSelectOwn?: boolean | null; canInsert?: boolean; error?: any }> => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     console.log("Current session:", sessionData);
