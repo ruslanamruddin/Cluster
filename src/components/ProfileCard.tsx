@@ -1,104 +1,123 @@
 
-import { User } from "lucide-react";
-import GlassmorphicCard from "./GlassmorphicCard";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import React from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { 
+  Badge
+} from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { UserPlus, ExternalLink } from 'lucide-react';
 
-interface ProfileSkill {
+export interface Skill {
   name: string;
-  level: "beginner" | "intermediate" | "expert";
+  level: 'beginner' | 'intermediate' | 'expert';
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  avatar?: string;
+  title: string;
+  skills: Skill[];
+  bio: string;
+  linkedIn?: string;
+  github?: string;
 }
 
 interface ProfileCardProps {
-  name: string;
-  title: string;
-  skills: ProfileSkill[];
-  availability: "available" | "busy" | "unavailable";
-  image?: string;
+  profile: UserProfile;
+  onInvite?: (id: string) => void;
+  isTeamMember?: boolean;
 }
 
-const ProfileCard = ({ 
-  name, 
-  title, 
-  skills, 
-  availability,
-  image 
-}: ProfileCardProps) => {
-  // Map availability to colors
-  const availabilityColor = {
-    available: "bg-green-500/20 text-green-300",
-    busy: "bg-yellow-500/20 text-yellow-300",
-    unavailable: "bg-red-500/20 text-red-300",
-  };
-
-  // Map skill level to colors
-  const skillLevelColor = {
-    beginner: "bg-muted/20 text-muted-foreground",
-    intermediate: "bg-tech-accent1/20 text-tech-accent1",
-    expert: "bg-tech-accent2/20 text-tech-accent2",
+const ProfileCard: React.FC<ProfileCardProps> = ({ 
+  profile, 
+  onInvite,
+  isTeamMember = false
+}) => {
+  const getSkillBadgeColor = (level: Skill['level']) => {
+    switch (level) {
+      case 'beginner':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      case 'intermediate':
+        return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
+      case 'expert':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    }
   };
 
   return (
-    <GlassmorphicCard className="w-full max-w-sm hover:shadow-neon-glow transition-all duration-300">
-      <div className="flex flex-col items-center">
-        {/* Profile image */}
-        <div className="w-20 h-20 rounded-full overflow-hidden mb-4 bg-muted/20 flex items-center justify-center">
-          {image ? (
-            <img 
-              src={image} 
-              alt={name} 
-              className="w-full h-full object-cover" 
-            />
-          ) : (
-            <User className="h-10 w-10 text-muted-foreground" />
+    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg border border-border/50">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div className="flex space-x-4 items-center">
+            <Avatar className="h-12 w-12 border-2 border-border">
+              <AvatarImage src={profile.avatar} alt={profile.name} />
+              <AvatarFallback>
+                {profile.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <CardTitle className="text-lg">{profile.name}</CardTitle>
+              <CardDescription>{profile.title}</CardDescription>
+            </div>
+          </div>
+          {profile.linkedIn && (
+            <a 
+              href={profile.linkedIn} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ExternalLink size={18} />
+            </a>
           )}
         </div>
-
-        {/* Basic info */}
-        <div className="text-center mb-4">
-          <h3 className="text-xl font-medium">{name}</h3>
-          <p className="text-muted-foreground">{title}</p>
-          <Badge 
-            variant="outline"
-            className={`mt-2 ${availabilityColor[availability]}`}
-          >
-            {availability === "available" ? "Available for teams" : 
-             availability === "busy" ? "Limited availability" : "Currently unavailable"}
-          </Badge>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{profile.bio}</p>
+        <div className="flex flex-wrap gap-1 mt-2">
+          {profile.skills.slice(0, 6).map(skill => (
+            <Badge 
+              key={skill.name} 
+              variant="secondary"
+              className={`${getSkillBadgeColor(skill.level)} transition-all duration-200`}
+            >
+              {skill.name}
+            </Badge>
+          ))}
+          {profile.skills.length > 6 && (
+            <Badge variant="outline">+{profile.skills.length - 6} more</Badge>
+          )}
         </div>
-
-        {/* Skills */}
-        <div className="w-full mb-4">
-          <h4 className="text-sm font-medium mb-2">Skills</h4>
-          <div className="flex flex-wrap gap-2">
-            {skills.map((skill) => (
-              <Badge 
-                key={skill.name}
-                variant="outline"
-                className={skillLevelColor[skill.level]}
-              >
-                {skill.name}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="w-full mt-2 flex space-x-2">
+      </CardContent>
+      <CardFooter className="pt-1">
+        {onInvite && !isTeamMember ? (
           <Button 
             variant="outline" 
-            className="flex-1 border-white/10 hover:bg-white/5 transition-colors"
+            size="sm" 
+            className="w-full"
+            onClick={() => onInvite(profile.id)}
           >
-            View Profile
-          </Button>
-          <Button 
-            className="flex-1 bg-cta-gradient hover:shadow-neon-cyan transition-all duration-300"
-          >
+            <UserPlus size={16} className="mr-2" />
             Invite to Team
           </Button>
-        </div>
-      </div>
-    </GlassmorphicCard>
+        ) : isTeamMember ? (
+          <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100">
+            Team Member
+          </Badge>
+        ) : null}
+      </CardFooter>
+    </Card>
   );
 };
 

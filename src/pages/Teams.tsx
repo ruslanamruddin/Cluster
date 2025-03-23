@@ -1,267 +1,402 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Terminal, Users, BrainCircuit } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import PageTransition from "@/components/PageTransition";
-import AnimatedSection from "@/components/AnimatedSection";
-import GlassmorphicCard from "@/components/GlassmorphicCard";
-import TeamCard, { TeamCardProps } from "@/components/TeamCard";
-import CreateTeamForm from "@/components/CreateTeamForm";
-
-// Mock data - this would come from Supabase in the real implementation
-const mockTeams: TeamCardProps[] = [
-  {
-    id: "1",
-    name: "PixelPioneers",
-    description: "Building a next-gen design collaboration platform for remote teams.",
-    members: [
-      { id: "user1", name: "Sarah Chen", role: "UI/UX Designer" },
-      { id: "user2", name: "Alex Johnson", role: "Full Stack Developer" },
-    ],
-    tags: ["React", "Firebase", "UI/UX", "TypeScript"],
-    recruiting: true,
-  },
-  {
-    id: "2",
-    name: "CodeCrafters",
-    description: "Developing an AI-powered code review and mentorship platform for junior developers.",
-    members: [
-      { id: "user3", name: "Michael Lee", role: "Backend Developer" },
-      { id: "user4", name: "Jennifer Wong", role: "ML Engineer" },
-      { id: "user5", name: "David Kim", role: "Frontend Developer" },
-    ],
-    tags: ["Python", "Machine Learning", "Node.js", "React"],
-    recruiting: true,
-  },
-  {
-    id: "3",
-    name: "DataDynamos",
-    description: "Creating a visual analytics platform for complex datasets using cutting-edge visualization techniques.",
-    members: [
-      { id: "user6", name: "Emma Clark", role: "Data Scientist" },
-      { id: "user7", name: "James Wilson", role: "Visualization Expert" },
-    ],
-    tags: ["Data Visualization", "D3.js", "Python", "React"],
-    recruiting: false,
-  },
-  {
-    id: "4",
-    name: "CloudChasers",
-    description: "Building a simplified cloud infrastructure management tool for small businesses.",
-    members: [
-      { id: "user8", name: "Robert Garcia", role: "DevOps Engineer" },
-      { id: "user9", name: "Sophia Martinez", role: "Full Stack Developer" },
-    ],
-    tags: ["AWS", "Infrastructure", "Terraform", "TypeScript"],
-    recruiting: true,
-  },
-  {
-    id: "5",
-    name: "MobileMonarchs",
-    description: "Developing a cross-platform mobile app for sustainable living and eco-friendly habits.",
-    members: [
-      { id: "user10", name: "Daniel Brown", role: "Mobile Developer" },
-      { id: "user11", name: "Olivia Taylor", role: "UI/UX Designer" },
-    ],
-    tags: ["React Native", "Firebase", "UI/UX", "Sustainability"],
-    recruiting: false,
-  }
-];
-
-// Skill categories for filtering
-const skillCategories = [
-  "Frontend", "Backend", "Mobile", "AI/ML", "Design", "DevOps", "Data"
-];
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import Layout from '@/components/Layout';
+import { Team } from '@/components/TeamList';
+import ProfileCard from '@/components/ProfileCard';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { categorizeSkills } from '@/lib/skillAnalysis';
+import { 
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  ArrowLeft,
+  Users,
+  LightbulbIcon,
+  UserPlus,
+  Shield
+} from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 const Teams = () => {
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
+  const { id } = useParams<{ id: string }>();
+  const [team, setTeam] = useState<Team | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   
+  // In a real app, this would fetch team data from an API
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  const filteredTeams = mockTeams
-    .sort((a, b) => (a.recruiting === b.recruiting ? 0 : a.recruiting ? -1 : 1))
-    .filter(team => {
-      const nameMatch = team.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const descMatch = team.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const tagMatch = team.tags.some(tag => 
-        tag.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      
-      // Category filter
-      const categoryMatch = !selectedCategory || team.tags.some(tag => {
-        if (selectedCategory === "Frontend") return ["React", "Angular", "Vue", "HTML", "CSS", "JavaScript", "TypeScript"].includes(tag);
-        if (selectedCategory === "Backend") return ["Node.js", "Express", "Django", "Flask", "Spring", "ASP.NET"].includes(tag);
-        if (selectedCategory === "Mobile") return ["React Native", "Flutter", "Android", "iOS", "Swift", "Kotlin"].includes(tag);
-        if (selectedCategory === "AI/ML") return ["Machine Learning", "AI", "TensorFlow", "PyTorch", "NLP"].includes(tag);
-        if (selectedCategory === "Design") return ["UI/UX", "Figma", "Sketch", "Adobe XD", "Design"].includes(tag);
-        if (selectedCategory === "DevOps") return ["AWS", "Azure", "Docker", "Kubernetes", "CI/CD", "Terraform"].includes(tag);
-        if (selectedCategory === "Data") return ["Data Visualization", "D3.js", "Data Science", "Analytics", "BI"].includes(tag);
-        return false;
-      });
-      
-      return (nameMatch || descMatch || tagMatch) && categoryMatch;
+    // Mock team data for demonstration
+    const sampleTeams: Team[] = [
+      {
+        id: '1',
+        name: 'CodeCrafters',
+        description: 'Building an AI-powered code assistant for hackathons',
+        members: [
+          {
+            id: '1',
+            name: 'Alex Johnson',
+            avatar: '',
+            title: 'Frontend Developer',
+            skills: [
+              { name: 'React', level: 'expert' },
+              { name: 'TypeScript', level: 'intermediate' },
+              { name: 'JavaScript', level: 'expert' },
+              { name: 'HTML/CSS', level: 'expert' },
+              { name: 'Tailwind CSS', level: 'intermediate' },
+            ],
+            bio: 'Frontend developer with 3 years of experience building web applications.'
+          },
+          {
+            id: '2',
+            name: 'Sam Rodriguez',
+            avatar: '',
+            title: 'Backend Engineer',
+            skills: [
+              { name: 'Node.js', level: 'expert' },
+              { name: 'Python', level: 'intermediate' },
+              { name: 'Database Design', level: 'expert' },
+              { name: 'AWS', level: 'intermediate' },
+              { name: 'Docker', level: 'beginner' }
+            ],
+            bio: 'Backend developer specializing in API development and database optimization.'
+          }
+        ],
+        projectIdea: 'An AI-powered code assistant that helps hackathon participants debug their code and suggests improvements in real-time.',
+        isRecruiting: true,
+        skillsNeeded: ['Machine Learning', 'NLP', 'UI Design']
+      },
+      {
+        id: '2',
+        name: 'DataViz Pioneers',
+        description: 'Creating interactive data visualizations for complex datasets',
+        members: [
+          {
+            id: '3',
+            name: 'Taylor Kim',
+            avatar: '',
+            title: 'Data Scientist',
+            skills: [
+              { name: 'Python', level: 'expert' },
+              { name: 'Data Analysis', level: 'expert' },
+              { name: 'Machine Learning', level: 'intermediate' },
+              { name: 'SQL', level: 'expert' },
+              { name: 'Data Visualization', level: 'expert' }
+            ],
+            bio: 'Data scientist with expertise in visualization techniques and statistical analysis.'
+          }
+        ],
+        projectIdea: 'A platform that transforms complex CSV datasets into interactive and insightful visualizations with minimal setup.',
+        isRecruiting: true,
+        skillsNeeded: ['D3.js', 'React', 'Data Visualization', 'UI/UX Design']
+      },
+      {
+        id: '3',
+        name: 'EcoTrack',
+        description: 'Sustainability tracking application for everyday decisions',
+        members: [
+          {
+            id: '4',
+            name: 'Jordan Patel',
+            avatar: '',
+            title: 'UX/UI Designer',
+            skills: [
+              { name: 'Figma', level: 'expert' },
+              { name: 'UI Design', level: 'expert' },
+              { name: 'Prototyping', level: 'intermediate' },
+              { name: 'User Research', level: 'intermediate' },
+              { name: 'HTML/CSS', level: 'beginner' }
+            ],
+            bio: 'Designer focused on creating intuitive and beautiful user interfaces.'
+          },
+          {
+            id: '5',
+            name: 'Morgan Williams',
+            avatar: '',
+            title: 'Full Stack Developer',
+            skills: [
+              { name: 'JavaScript', level: 'expert' },
+              { name: 'React', level: 'intermediate' },
+              { name: 'Node.js', level: 'beginner' },
+              { name: 'MongoDB', level: 'intermediate' },
+              { name: 'GraphQL', level: 'beginner' }
+            ],
+            bio: 'Full stack developer with a focus on creating seamless user experiences.'
+          }
+        ],
+        projectIdea: 'A mobile app that helps users track the environmental impact of their daily choices and suggests more sustainable alternatives.',
+        isRecruiting: false
+      },
+    ];
+    
+    const foundTeam = sampleTeams.find(t => t.id === id);
+    
+    // Simulate API request delay
+    setTimeout(() => {
+      setTeam(foundTeam || null);
+      setLoading(false);
+    }, 500);
+  }, [id]);
+  
+  const handleJoinTeam = () => {
+    toast({
+      title: "Join request sent",
+      description: "Your request to join the team has been sent to the team admin.",
     });
-
-  return (
-    <PageTransition>
-      <div className="min-h-screen w-full overflow-hidden relative bg-tech-dark">
-        {/* Background elements */}
-        <div className="absolute inset-0 bg-grid opacity-20" />
-        
-        <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-tech-accent1/10 rounded-full filter blur-[120px] animate-glow-pulse" />
-        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-tech-accent2/10 rounded-full filter blur-[100px] animate-glow-pulse" style={{ animationDelay: "1.5s" }} />
-        
-        {/* Main content */}
-        <div className="container mx-auto px-4 py-10">
-          {/* Header */}
-          <header className="flex flex-col sm:flex-row items-center justify-between py-6">
-            <AnimatedSection animation="fade-in" delay={1}>
-              <a href="/" className="flex items-center mb-4 sm:mb-0">
-                <div className="w-10 h-10 relative mr-2">
-                  <div className="absolute inset-0 bg-cta-gradient rounded-lg rotate-45" />
-                  <div className="absolute inset-1 bg-tech-navy rounded-md rotate-45 flex items-center justify-center">
-                    <Terminal className="text-tech-accent1 w-5 h-5 -rotate-45" />
-                  </div>
-                </div>
-                <span className="text-xl font-semibold text-gradient">HackHub</span>
-              </a>
-            </AnimatedSection>
-            
-            <AnimatedSection animation="fade-in" delay={2}>
-              <Button 
-                className="bg-cta-gradient hover:shadow-neon-cyan transition-all duration-300"
-                onClick={() => setIsCreateTeamOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Team
-              </Button>
-            </AnimatedSection>
-          </header>
+  };
+  
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+            <p className="text-muted-foreground">Loading team information...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  if (!team) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <Link to="/explore">
+            <Button variant="ghost" className="mb-4 gap-2">
+              <ArrowLeft size={16} />
+              Back to Explore
+            </Button>
+          </Link>
           
-          {/* Title */}
-          <AnimatedSection 
-            animation="fade-in" 
-            delay={2} 
-            className="text-center max-w-2xl mx-auto mb-10 mt-8"
-          >
-            <h1 className="text-3xl sm:text-4xl font-bold mb-4">Find Your Perfect Team</h1>
-            <p className="text-muted-foreground">
-              Browse through hackathon teams or create your own
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-4 rounded-full bg-muted p-4">
+              <Users className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-medium mb-2">Team not found</h3>
+            <p className="text-muted-foreground max-w-md">
+              The team you're looking for doesn't exist or has been removed.
             </p>
-          </AnimatedSection>
-          
-          {/* Search and filters */}
-          <AnimatedSection 
-            animation="slide-up" 
-            delay={3}
-            className="mb-8 max-w-4xl mx-auto"
-          >
-            <GlassmorphicCard className="p-4 md:p-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-grow">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    type="text"
-                    placeholder="Search by team name, description or skills..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-black/20 border-white/10 focus:border-tech-accent1/50"
-                  />
+            <Link to="/explore">
+              <Button className="mt-6">
+                Browse Available Teams
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // Get team skill sets
+  const allTeamSkills = team.members.flatMap(member => member.skills);
+  const skillCounts = allTeamSkills.reduce((acc, skill) => {
+    acc[skill.name] = (acc[skill.name] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  // Find skill gaps (skills needed but not present in the team)
+  const teamSkillNames = new Set(allTeamSkills.map(skill => skill.name));
+  const skillGaps = team.skillsNeeded?.filter(skill => !teamSkillNames.has(skill)) || [];
+  
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        <Link to="/explore">
+          <Button variant="ghost" className="mb-4 gap-2">
+            <ArrowLeft size={16} />
+            Back to Explore
+          </Button>
+        </Link>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-2xl">{team.name}</CardTitle>
+                    <CardDescription className="text-base mt-1">
+                      {team.description}
+                    </CardDescription>
+                  </div>
+                  {team.isRecruiting && (
+                    <Badge variant="outline" className="flex items-center gap-1 border-primary/30 text-primary">
+                      <UserPlus size={12} />
+                      Recruiting
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <LightbulbIcon className="h-5 w-5 text-amber-500" />
+                    Project Idea
+                  </h3>
+                  <p className="mt-2 text-muted-foreground">{team.projectIdea}</p>
                 </div>
                 
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hidden">
-                  <Filter className="text-muted-foreground h-4 w-4 flex-shrink-0" />
-                  {skillCategories.map(category => (
-                    <Badge
-                      key={category}
-                      variant={selectedCategory === category ? "default" : "outline"}
-                      className={`cursor-pointer ${
-                        selectedCategory === category 
-                          ? "bg-tech-accent1 text-black"
-                          : "hover:bg-white/5"
-                      }`}
-                      onClick={() => {
-                        setSelectedCategory(
-                          selectedCategory === category ? null : category
-                        );
-                      }}
-                    >
-                      {category}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </GlassmorphicCard>
-          </AnimatedSection>
-          
-          {/* Stats */}
-          <AnimatedSection animation="slide-up" delay={4} className="mb-8">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <GlassmorphicCard className="text-center p-4">
-                <div className="flex flex-col items-center">
-                  <Users className="h-6 w-6 mb-2 text-tech-accent1" />
-                  <h3 className="text-2xl font-bold">{mockTeams.length}</h3>
-                  <p className="text-muted-foreground">Active Teams</p>
-                </div>
-              </GlassmorphicCard>
-              
-              <GlassmorphicCard className="text-center p-4">
-                <div className="flex flex-col items-center">
-                  <BrainCircuit className="h-6 w-6 mb-2 text-tech-accent2" />
-                  <h3 className="text-2xl font-bold">
-                    {mockTeams.filter(t => t.recruiting).length}
+                {team.isRecruiting && skillGaps.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                      <UserPlus className="h-5 w-5 text-primary" />
+                      Skills Needed
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {skillGaps.map(skill => (
+                        <Badge 
+                          key={skill} 
+                          variant="secondary"
+                          className="bg-blue-100 text-blue-800"
+                        >
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                    
+                    {team.isRecruiting && (
+                      <div className="mt-4">
+                        <Button onClick={handleJoinTeam} className="gap-2">
+                          <UserPlus size={16} />
+                          Request to Join Team
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Users className="h-5 w-5 text-indigo-500" />
+                    Team Members ({team.members.length})
                   </h3>
-                  <p className="text-muted-foreground">Recruiting</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {team.members.map((member, index) => (
+                      <div key={member.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
+                        <Avatar className="h-10 w-10 border-2 border-border">
+                          <AvatarImage src={member.avatar} alt={member.name} />
+                          <AvatarFallback>
+                            {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">{member.name}</h4>
+                              <p className="text-sm text-muted-foreground">{member.title}</p>
+                            </div>
+                            {index === 0 && (
+                              <Badge variant="outline" className="flex items-center gap-1 border-amber-300 text-amber-700 bg-amber-50">
+                                <Shield size={10} />
+                                Admin
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {member.skills.slice(0, 3).map(skill => (
+                              <Badge 
+                                key={skill.name} 
+                                variant="secondary"
+                                className="text-xs py-0"
+                              >
+                                {skill.name}
+                              </Badge>
+                            ))}
+                            {member.skills.length > 3 && (
+                              <span className="text-xs text-muted-foreground">+{member.skills.length - 3} more</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </GlassmorphicCard>
-              
-              <GlassmorphicCard className="text-center p-4">
-                <div className="flex flex-col items-center">
-                  <Terminal className="h-6 w-6 mb-2 text-tech-accent1" />
-                  <h3 className="text-2xl font-bold">48</h3>
-                  <p className="text-muted-foreground">Hours Left</p>
-                </div>
-              </GlassmorphicCard>
-            </div>
-          </AnimatedSection>
-          
-          {/* Teams grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {filteredTeams.map((team, index) => (
-              <AnimatedSection 
-                key={team.id} 
-                animation="scale-in" 
-                delay={(index % 3) + 5 as 5 | 6 | 7}
-              >
-                <TeamCard 
-                  {...team}
-                  onClick={() => navigate(`/team/${team.id}`)}
-                />
-              </AnimatedSection>
-            ))}
+              </CardContent>
+            </Card>
           </div>
           
-          {/* Create Team Dialog */}
-          <Dialog open={isCreateTeamOpen} onOpenChange={setIsCreateTeamOpen}>
-            <DialogContent className="max-w-2xl bg-tech-dark border-white/10">
-              <DialogHeader>
-                <DialogTitle>Create a New Team</DialogTitle>
-              </DialogHeader>
-              <CreateTeamForm onSubmitSuccess={() => setIsCreateTeamOpen(false)} />
-            </DialogContent>
-          </Dialog>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Team Skills</CardTitle>
+                <CardDescription>
+                  Skills present in the team
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {Object.entries(categorizeSkills(allTeamSkills)).map(([category, skills]) => (
+                    <div key={category}>
+                      <h4 className="text-sm font-medium mb-2">{category}</h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Array.from(new Set(skills.map(skill => skill.name))).map(skillName => {
+                          const count = skillCounts[skillName];
+                          return (
+                            <Badge 
+                              key={skillName} 
+                              variant="secondary"
+                              className="flex items-center gap-1"
+                            >
+                              {skillName}
+                              {count > 1 && (
+                                <span className="ml-1 bg-primary/20 text-primary rounded-full px-1.5 text-xs">
+                                  {count}
+                                </span>
+                              )}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            
+            {team.isRecruiting && (
+              <Card>
+                <CardHeader className="pb-3 bg-primary/5 border-b">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <UserPlus className="h-5 w-5" />
+                    Join This Team
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    This team is looking for members with the following skills:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {skillGaps.map(skill => (
+                      <Badge 
+                        key={skill} 
+                        variant="secondary"
+                        className="bg-blue-100 text-blue-800"
+                      >
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                  <Button 
+                    onClick={handleJoinTeam} 
+                    className="w-full gap-2"
+                  >
+                    <UserPlus size={16} />
+                    Request to Join
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
-    </PageTransition>
+    </Layout>
   );
 };
 
