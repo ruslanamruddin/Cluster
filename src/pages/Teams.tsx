@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Team } from '@/components/TeamList';
 import ProfileCard from '@/components/ProfileCard';
@@ -20,135 +20,187 @@ import {
   Users,
   LightbulbIcon,
   UserPlus,
-  Shield
+  Shield,
+  LogOut
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Teams = () => {
   const { id } = useParams<{ id: string }>();
   const [team, setTeam] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUserMember, setIsUserMember] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   
-  // In a real app, this would fetch team data from an API
+  // Fetch the team data
   useEffect(() => {
-    // Mock team data for demonstration
-    const sampleTeams: Team[] = [
-      {
-        id: '1',
-        name: 'CodeCrafters',
-        description: 'Building an AI-powered code assistant for hackathons',
-        members: [
-          {
-            id: '1',
-            name: 'Alex Johnson',
-            avatar: '',
-            title: 'Frontend Developer',
-            skills: [
-              { name: 'React', level: 'expert' },
-              { name: 'TypeScript', level: 'intermediate' },
-              { name: 'JavaScript', level: 'expert' },
-              { name: 'HTML/CSS', level: 'expert' },
-              { name: 'Tailwind CSS', level: 'intermediate' },
-            ],
-            bio: 'Frontend developer with 3 years of experience building web applications.'
-          },
-          {
-            id: '2',
-            name: 'Sam Rodriguez',
-            avatar: '',
-            title: 'Backend Engineer',
-            skills: [
-              { name: 'Node.js', level: 'expert' },
-              { name: 'Python', level: 'intermediate' },
-              { name: 'Database Design', level: 'expert' },
-              { name: 'AWS', level: 'intermediate' },
-              { name: 'Docker', level: 'beginner' }
-            ],
-            bio: 'Backend developer specializing in API development and database optimization.'
-          }
-        ],
-        projectIdea: 'An AI-powered code assistant that helps hackathon participants debug their code and suggests improvements in real-time.',
-        isRecruiting: true,
-        skillsNeeded: ['Machine Learning', 'NLP', 'UI Design']
-      },
-      {
-        id: '2',
-        name: 'DataViz Pioneers',
-        description: 'Creating interactive data visualizations for complex datasets',
-        members: [
-          {
-            id: '3',
-            name: 'Taylor Kim',
-            avatar: '',
-            title: 'Data Scientist',
-            skills: [
-              { name: 'Python', level: 'expert' },
-              { name: 'Data Analysis', level: 'expert' },
-              { name: 'Machine Learning', level: 'intermediate' },
-              { name: 'SQL', level: 'expert' },
-              { name: 'Data Visualization', level: 'expert' }
-            ],
-            bio: 'Data scientist with expertise in visualization techniques and statistical analysis.'
-          }
-        ],
-        projectIdea: 'A platform that transforms complex CSV datasets into interactive and insightful visualizations with minimal setup.',
-        isRecruiting: true,
-        skillsNeeded: ['D3.js', 'React', 'Data Visualization', 'UI/UX Design']
-      },
-      {
-        id: '3',
-        name: 'EcoTrack',
-        description: 'Sustainability tracking application for everyday decisions',
-        members: [
-          {
-            id: '4',
-            name: 'Jordan Patel',
-            avatar: '',
-            title: 'UX/UI Designer',
-            skills: [
-              { name: 'Figma', level: 'expert' },
-              { name: 'UI Design', level: 'expert' },
-              { name: 'Prototyping', level: 'intermediate' },
-              { name: 'User Research', level: 'intermediate' },
-              { name: 'HTML/CSS', level: 'beginner' }
-            ],
-            bio: 'Designer focused on creating intuitive and beautiful user interfaces.'
-          },
-          {
-            id: '5',
-            name: 'Morgan Williams',
-            avatar: '',
-            title: 'Full Stack Developer',
-            skills: [
-              { name: 'JavaScript', level: 'expert' },
-              { name: 'React', level: 'intermediate' },
-              { name: 'Node.js', level: 'beginner' },
-              { name: 'MongoDB', level: 'intermediate' },
-              { name: 'GraphQL', level: 'beginner' }
-            ],
-            bio: 'Full stack developer with a focus on creating seamless user experiences.'
-          }
-        ],
-        projectIdea: 'A mobile app that helps users track the environmental impact of their daily choices and suggests more sustainable alternatives.',
-        isRecruiting: false
-      },
-    ];
+    const fetchTeam = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        
+        const { data: teamData, error: teamError } = await supabase
+          .from('teams')
+          .select(`
+            id,
+            name,
+            description,
+            project_idea,
+            is_recruiting,
+            team_members (
+              id,
+              is_admin,
+              user_id,
+              profiles:user_id (
+                id,
+                name,
+                title,
+                avatar_url,
+                bio
+              )
+            ),
+            team_skills_needed (
+              id,
+              skills:skill_id (
+                id,
+                name
+              )
+            )
+          `)
+          .eq('id', id)
+          .single();
+        
+        if (teamError) throw teamError;
+        
+        // Transform the data
+        const members = teamData.team_members
+          .filter((member: any) => member.profiles)
+          .map((member: any) => ({
+            id: member.profiles.id,
+            name: member.profiles.name,
+            avatar: member.profiles.avatar_url || '',
+            title: member.profiles.title || '',
+            bio: member.profiles.bio || '',
+            skills: [], // We'll get skills in another query
+            isAdmin: member.is_admin
+          }));
+          
+        const skillsNeeded = teamData.team_skills_needed
+          .filter((skill: any) => skill.skills)
+          .map((skill: any) => skill.skills.name);
+        
+        const transformedTeam: Team = {
+          id: teamData.id,
+          name: teamData.name,
+          description: teamData.description || '',
+          members,
+          projectIdea: teamData.project_idea || '',
+          isRecruiting: teamData.is_recruiting,
+          skillsNeeded,
+        };
+        
+        setTeam(transformedTeam);
+        
+        // Check if the user is a member of this team
+        if (user) {
+          const isMember = members.some(m => m.id === user.id);
+          setIsUserMember(isMember);
+          
+          const userAdmin = members.find(m => m.id === user.id)?.isAdmin || false;
+          setIsAdmin(userAdmin);
+        }
+        
+      } catch (error) {
+        console.error('Error fetching team:', error);
+        toast({
+          title: "Failed to load team",
+          description: `Error: ${(error as Error).message}`,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    const foundTeam = sampleTeams.find(t => t.id === id);
-    
-    // Simulate API request delay
-    setTimeout(() => {
-      setTeam(foundTeam || null);
-      setLoading(false);
-    }, 500);
-  }, [id]);
+    fetchTeam();
+  }, [id, user]);
   
   const handleJoinTeam = () => {
     toast({
       title: "Join request sent",
       description: "Your request to join the team has been sent to the team admin.",
     });
+  };
+  
+  const handleLeaveTeam = async () => {
+    if (!user || !team) return;
+    
+    try {
+      // Get the team to check if user is the last member
+      const { data: teamMembers, error: membersError } = await supabase
+        .from('team_members')
+        .select('id, is_admin')
+        .eq('team_id', team.id);
+      
+      if (membersError) throw membersError;
+      
+      const isLastMember = teamMembers.length === 1;
+      
+      if (isLastMember) {
+        // If user is the last member, ask if they want to delete the team
+        if (!window.confirm("You are the last member of this team. Leaving will delete the team. Are you sure?")) {
+          return;
+        }
+        
+        // Delete the team
+        const { error: deleteError } = await supabase
+          .from('teams')
+          .delete()
+          .eq('id', team.id);
+          
+        if (deleteError) throw deleteError;
+        
+        toast({
+          title: "Team deleted",
+          description: "The team has been deleted as you were the last member.",
+        });
+        
+        // Navigate back to explore
+        navigate('/explore');
+      } else {
+        // Just remove the user from the team
+        const { error: leaveError } = await supabase
+          .from('team_members')
+          .delete()
+          .match({ 
+            team_id: team.id,
+            user_id: user.id
+          });
+          
+        if (leaveError) throw leaveError;
+        
+        toast({
+          title: "Team left",
+          description: "You have successfully left the team.",
+        });
+        
+        // Navigate back to explore
+        navigate('/explore');
+      }
+    } catch (error) {
+      console.error('Error leaving team:', error);
+      toast({
+        title: "Action failed",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    }
   };
   
   if (loading) {
@@ -261,11 +313,24 @@ const Teams = () => {
                       ))}
                     </div>
                     
-                    {team.isRecruiting && (
+                    {team.isRecruiting && !isUserMember && user && (
                       <div className="mt-4">
                         <Button onClick={handleJoinTeam} className="gap-2">
                           <UserPlus size={16} />
                           Request to Join Team
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {isUserMember && (
+                      <div className="mt-4">
+                        <Button 
+                          onClick={handleLeaveTeam} 
+                          variant="outline"
+                          className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                        >
+                          <LogOut size={16} />
+                          Leave Team
                         </Button>
                       </div>
                     )}
@@ -292,7 +357,7 @@ const Teams = () => {
                               <h4 className="font-medium">{member.name}</h4>
                               <p className="text-sm text-muted-foreground">{member.title}</p>
                             </div>
-                            {index === 0 && (
+                            {(member.isAdmin || index === 0) && (
                               <Badge variant="outline" className="flex items-center gap-1 border-amber-300 text-amber-700 bg-amber-50">
                                 <Shield size={10} />
                                 Admin
@@ -360,7 +425,7 @@ const Teams = () => {
               </CardContent>
             </Card>
             
-            {team.isRecruiting && (
+            {team.isRecruiting && !isUserMember && user && (
               <Card>
                 <CardHeader className="pb-3 bg-primary/5 border-b">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -389,6 +454,30 @@ const Teams = () => {
                   >
                     <UserPlus size={16} />
                     Request to Join
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            
+            {isUserMember && (
+              <Card>
+                <CardHeader className="pb-3 bg-destructive/5 border-b">
+                  <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                    <LogOut className="h-5 w-5" />
+                    Leave Team
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Are you sure you want to leave this team? This action cannot be undone.
+                  </p>
+                  <Button 
+                    onClick={handleLeaveTeam} 
+                    variant="outline"
+                    className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                  >
+                    <LogOut size={16} />
+                    Leave Team
                   </Button>
                 </CardContent>
               </Card>

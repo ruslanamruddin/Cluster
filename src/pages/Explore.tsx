@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import ProfileCard, { UserProfile } from '@/components/ProfileCard';
 import TeamList, { Team } from '@/components/TeamList';
 import TeamCreation from '@/components/TeamCreation';
+import TeamTab from '@/components/TeamTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -34,10 +35,11 @@ import { supabase } from '@/integrations/supabase/client';
 
 const Explore = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'members' | 'teams' | 'active-teams' | 'create-team' | 'team-details'>('active-teams');
+  const [activeTab, setActiveTab] = useState<'members' | 'teams' | 'active-teams' | 'create-team' | 'team-details'>('teams');
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [showTeamCreation, setShowTeamCreation] = useState(false);
   const [isLoadingTeams, setIsLoadingTeams] = useState(true);
@@ -361,18 +363,18 @@ const Explore = () => {
       
       const transformedTeams: Team[] = teamsData.map(teamData => {
         const members: UserProfile[] = teamData.team_members
-          .filter((member: any) => member.profiles) // Filter out any null profiles
+          .filter((member: any) => member.profiles) 
           .map((member: any) => ({
             id: member.profiles.id,
             name: member.profiles.name,
             avatar: member.profiles.avatar_url || '',
             title: member.profiles.title || '',
             bio: member.profiles.bio || '',
-            skills: [], // We don't have this info from this query
+            skills: [], 
           }));
           
         const skillsNeeded = teamData.team_skills_needed
-          .filter((skill: any) => skill.skills) // Filter out any null skills
+          .filter((skill: any) => skill.skills) 
           .map((skill: any) => skill.skills.name);
         
         return {
@@ -410,7 +412,13 @@ const Explore = () => {
 
   useEffect(() => {
     fetchTeams();
-  }, []);
+    
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('create') === 'true') {
+      setShowTeamCreation(true);
+      setActiveTab('create-team');
+    }
+  }, [location.search]);
   
   useEffect(() => {
     if (id) {
@@ -421,7 +429,9 @@ const Explore = () => {
       }
     } else {
       setSelectedTeam(null);
-      setActiveTab('active-teams');
+      if (activeTab === 'team-details') {
+        setActiveTab('teams');
+      }
     }
   }, [id, teams]);
 
@@ -465,7 +475,7 @@ const Explore = () => {
   }) => {
     fetchTeams();
     
-    setActiveTab('active-teams');
+    setActiveTab('teams');
     setShowTeamCreation(false);
     
     toast({
@@ -482,7 +492,7 @@ const Explore = () => {
 
   const handleBackToTeams = () => {
     setSelectedTeam(null);
-    setActiveTab('active-teams');
+    setActiveTab('teams');
     navigate('/explore');
   };
 
@@ -793,17 +803,16 @@ const Explore = () => {
             if (value !== 'create-team') {
               setShowTeamCreation(false);
             }
-            setActiveTab(value as 'members' | 'teams' | 'active-teams' | 'create-team');
+            setActiveTab(value as 'members' | 'teams' | 'active-teams' | 'create-team' | 'team-details');
           }} 
           className="w-full mb-6"
         >
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
-            <TabsTrigger value="active-teams">Active Teams</TabsTrigger>
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+            <TabsTrigger value="teams">Teams</TabsTrigger>
             <TabsTrigger value="members">Find Teammates</TabsTrigger>
-            <TabsTrigger value="teams">All Teams</TabsTrigger>
           </TabsList>
 
-          {activeTab !== 'create-team' && (
+          {activeTab !== 'create-team' && activeTab !== 'team-details' && (
             <div className="mb-6 mt-6">
               <div className="flex items-center gap-2 mb-2">
                 <Filter size={18} className="text-muted-foreground" />
@@ -837,34 +846,16 @@ const Explore = () => {
             </div>
           )}
           
-          <TabsContent value="active-teams" className="mt-0">
-            <TeamList 
-              teams={filteredTeams.filter(team => team.isRecruiting)}
+          <TabsContent value="teams" className="mt-0">
+            <TeamTab
+              teams={filteredTeams}
+              isLoadingTeams={isLoadingTeams}
+              searchTerm={searchTerm}
+              activeFilters={activeFilters}
               onJoinRequest={handleJoinRequest}
               onViewDetails={handleViewTeamDetails}
-              isLoading={isLoadingTeams}
+              refreshTeams={fetchTeams}
             />
-            
-            {!isLoadingTeams && filteredTeams.filter(team => team.isRecruiting).length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="mb-4 rounded-full bg-muted p-4">
-                  <Users className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium mb-1">No active teams found</h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filter criteria
-                </p>
-                {(searchTerm || activeFilters.length > 0) && (
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={clearFilters}
-                  >
-                    Clear all filters
-                  </Button>
-                )}
-              </div>
-            )}
           </TabsContent>
 
           <TabsContent value="members" className="mt-0">
@@ -898,36 +889,6 @@ const Explore = () => {
                 </div>
               )}
             </div>
-          </TabsContent>
-          
-          <TabsContent value="teams" className="mt-0">
-            <TeamList 
-              teams={filteredTeams}
-              onJoinRequest={handleJoinRequest}
-              onViewDetails={handleViewTeamDetails}
-              isLoading={isLoadingTeams}
-            />
-            
-            {!isLoadingTeams && filteredTeams.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="mb-4 rounded-full bg-muted p-4">
-                  <Users className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium mb-1">No teams found</h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filter criteria
-                </p>
-                {(searchTerm || activeFilters.length > 0) && (
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={clearFilters}
-                  >
-                    Clear all filters
-                  </Button>
-                )}
-              </div>
-            )}
           </TabsContent>
           
           <TabsContent value="create-team" className="mt-0">
