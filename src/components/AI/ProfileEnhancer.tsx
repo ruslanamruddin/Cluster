@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +43,7 @@ export function ProfileEnhancer() {
       };
 
       const prompt = `
-        You are an expert profile writer for a hackathon platform called HackHub.
+        You are an expert profile writer for a hackathon platform called HackSync.
         
         CURRENT PROFILE:
         ${inputBio}
@@ -204,4 +205,4 @@ export function ProfileEnhancer() {
       </CardFooter>
     </Card>
   );
-} 
+}

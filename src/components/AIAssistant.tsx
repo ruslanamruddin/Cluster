@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,7 @@ interface Message {
 const initialMessages: Message[] = [
   {
     role: 'system',
-    content: 'You are a helpful AI assistant for a hackathon platform called HackHub.'
+    content: 'You are a helpful AI assistant for a hackathon platform called HackSync.'
   },
   {
     role: 'assistant',
@@ -73,7 +74,7 @@ const AIAssistant: React.FC = () => {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <Brain className="h-5 w-5 text-primary" />
-          HackHub AI Assistant
+          HackSync AI Assistant
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">

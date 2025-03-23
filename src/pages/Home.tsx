@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -13,7 +14,7 @@ const Home = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col items-center text-center mb-16">
           <h1 className="text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary to-violet-500">
-            HackHub
+            HackSync
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mb-8">
             The ultimate platform for finding skilled teammates, managing projects, and leveraging AI to build amazing things together.
@@ -85,7 +86,7 @@ const Home = () => {
         <div className="flex flex-col items-center text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to start building?</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mb-6">
-            Join HackHub today and turn your ideas into reality with the perfect team.
+            Join HackSync today and turn your ideas into reality with the perfect team.
           </p>
           
           <Button asChild size="lg" className="gap-2">
