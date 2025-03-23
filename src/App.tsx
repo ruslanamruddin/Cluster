@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
@@ -15,6 +14,7 @@ import { AuthProvider } from './context/AuthContext';
 import { HackathonProvider } from './context/HackathonContext';
 import { Toaster } from '@/components/ui/toaster';
 import './App.css';
+import AdminPage from './pages/Admin';
 
 function App() {
   return (
@@ -31,6 +31,7 @@ function App() {
             <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
             <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
