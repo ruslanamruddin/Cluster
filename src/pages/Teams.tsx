@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -122,7 +123,8 @@ const Teams = () => {
           const isMember = members.some(m => m.id === user.id);
           setIsUserMember(isMember);
           
-          const userAdmin = members.find(m => m.id === user.id)?.isAdmin || false;
+          const userMember = members.find(m => m.id === user.id);
+          const userAdmin = userMember?.isAdmin || false;
           setIsAdmin(userAdmin);
         }
         
@@ -305,14 +307,14 @@ const Teams = () => {
                   <p className="mt-2 text-muted-foreground">{team.projectIdea}</p>
                 </div>
                 
-                {team.isRecruiting && skillGaps.length > 0 && (
+                {team.isRecruiting && team.skillsNeeded.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                       <UserPlus className="h-5 w-5 text-primary" />
                       Skills Needed
                     </h3>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {skillGaps.map(skill => (
+                      {team.skillsNeeded.map(skill => (
                         <Badge 
                           key={skill} 
                           variant="secondary"
@@ -353,7 +355,7 @@ const Teams = () => {
                     Team Members ({team.members.length})
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {team.members.map((member, index) => (
+                    {team.members.map((member) => (
                       <div key={member.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
                         <Avatar className="h-10 w-10 border-2 border-border">
                           <AvatarImage src={member.avatar} alt={member.name} />
@@ -367,7 +369,7 @@ const Teams = () => {
                               <h4 className="font-medium">{member.name}</h4>
                               <p className="text-sm text-muted-foreground">{member.title}</p>
                             </div>
-                            {(member.isAdmin || index === 0) && (
+                            {member.isAdmin && (
                               <Badge variant="outline" className="flex items-center gap-1 border-amber-300 text-amber-700 bg-amber-50">
                                 <Shield size={10} />
                                 Admin
@@ -448,7 +450,7 @@ const Teams = () => {
                     This team is looking for members with the following skills:
                   </p>
                   <div className="flex flex-wrap gap-1.5 mb-4">
-                    {skillGaps.map(skill => (
+                    {team.skillsNeeded.map(skill => (
                       <Badge 
                         key={skill} 
                         variant="secondary"
