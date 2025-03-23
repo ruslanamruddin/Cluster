@@ -1,11 +1,8 @@
-
 import { supabase } from './client';
 import { toast } from '@/components/ui/use-toast';
 import { Database } from './types';
 import { Json } from './types';
-import { PostgrestSingleResponse } from '@supabase/supabase-js';
 
-// Extract the table names from the Database type
 type Tables = Database['public']['Tables'];
 type TableNames = keyof Tables;
 type Functions = Database['public']['Functions'];
@@ -119,7 +116,7 @@ export const supabaseApi = {
       return { 
         data: null, 
         error: handleSupabaseError(error, `Failed to fetch ${table} record`),
-        status: error.code === 'PGRST116' ? 404 : 500
+        status: (error as any).code === 'PGRST116' ? 404 : 500
       };
     }
   },

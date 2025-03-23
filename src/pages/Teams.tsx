@@ -527,13 +527,16 @@ interface ProcessRequestsDialogProps {
   onTeamUpdated: () => void;
 }
 
-const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({ team, open, onClose, onTeamUpdated }) => {
-  const [requests, setRequests] = useState<Database['public']['Tables']['team_join_requests']['Row'][]>([]);
+const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({ 
+  team, 
+  open, 
+  onClose, 
+  onTeamUpdated 
+}) => {
+  const [requests, setRequests] = useState<TeamJoinRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const { user } = useAuth();
-  const { toast } = useToast();
-
+  
   useEffect(() => {
     fetchRequests();
   }, [team]);
@@ -541,7 +544,7 @@ const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({ team, ope
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      const response = await supabaseApi.getMany<Database['public']['Tables']['team_join_requests']['Row'][]>('team_join_requests', {
+      const response = await supabaseApi.getMany<TeamJoinRequest[]>('team_join_requests', {
         filters: { team_id: team.id, status: 'pending' }
       });
 
@@ -569,7 +572,7 @@ const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({ team, ope
     }
   };
 
-  const processRequest = async (status: string, request: Database['public']['Tables']['team_join_requests']['Row']) => {
+  const processRequest = async (status: string, request: TeamJoinRequest) => {
     if (!user) return;
     
     setProcessing(true);

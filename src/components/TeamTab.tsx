@@ -4,13 +4,18 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Users, UserPlus } from 'lucide-react';
 import { Team } from './TeamList';
-import { UserProfile } from './ProfileCard';
-import TeamList from './TeamList';
-import TeamDashboard from './TeamDashboard';
 import { useAuth } from '@/context/AuthContext';
-import { supabase, JoinRequestResponse } from '@/integrations/supabase/client';
-import { supabaseApi, showResponseToast } from '@/integrations/supabase/api';
-import { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
+import { supabaseApi } from '@/integrations/supabase/api';
+
+interface TeamJoinRequest {
+  id: string;
+  team_id: string;
+  user_id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface TeamTabProps {
   teams: Team[];
@@ -20,12 +25,6 @@ interface TeamTabProps {
   onJoinRequest: (teamId: string) => void;
   onViewDetails: (team: Team) => void;
   refreshTeams: () => Promise<void>;
-}
-
-// Define the interface for team join requests
-interface TeamJoinRequest {
-  team_id: string;
-  status: string;
 }
 
 const TeamTab: React.FC<TeamTabProps> = ({
@@ -99,7 +98,7 @@ const TeamTab: React.FC<TeamTabProps> = ({
       
       const requestMap: Record<string, string> = {};
       if (response.data) {
-        response.data.forEach(req => {
+        response.data.forEach((req: TeamJoinRequest) => {
           requestMap[req.team_id] = req.status;
         });
       }
@@ -134,7 +133,6 @@ const TeamTab: React.FC<TeamTabProps> = ({
         return;
       }
       
-      // Update local state
       setJoinRequests(prev => ({
         ...prev,
         [teamId]: 'pending'
@@ -145,7 +143,6 @@ const TeamTab: React.FC<TeamTabProps> = ({
         description: "Your request to join the team has been sent to the team admin.",
       });
       
-      // Refresh data
       fetchJoinRequests();
     } catch (error) {
       console.error('Error sending join request:', error);
@@ -199,7 +196,6 @@ const TeamTab: React.FC<TeamTabProps> = ({
     );
   }
 
-  // Filter teams that the user is not already a member of
   const availableTeams = teams.filter(team => 
     team.isRecruiting && 
     !userTeams.some(ut => ut.id === team.id)
