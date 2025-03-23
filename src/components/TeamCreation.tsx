@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { UserProfile } from './ProfileCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/components/ui/use-toast';
-import { Users, X, Plus, Check, Loader2 } from 'lucide-react';
+import { Users, X, Plus, Check, Loader2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 
@@ -32,7 +33,6 @@ interface Hackathon {
 }
 
 interface TeamCreationProps {
-  availableMembers: UserProfile[];
   onTeamCreated: (team: {
     name: string;
     description: string;
@@ -41,10 +41,7 @@ interface TeamCreationProps {
   }) => void;
 }
 
-const TeamCreation: React.FC<TeamCreationProps> = ({ 
-  availableMembers, 
-  onTeamCreated 
-}) => {
+const TeamCreation: React.FC<TeamCreationProps> = ({ onTeamCreated }) => {
   const [teamName, setTeamName] = useState('');
   const [description, setDescription] = useState('');
   const [projectIdea, setProjectIdea] = useState('');
@@ -54,12 +51,16 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [selectedHackathon, setSelectedHackathon] = useState<string>('');
   const [loadingHackathons, setLoadingHackathons] = useState(false);
+  const [availableMembers, setAvailableMembers] = useState<UserProfile[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [memberSearchTerm, setMemberSearchTerm] = useState('');
   
   const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
     fetchHackathons();
+    fetchAvailableMembers();
   }, []);
 
   const fetchHackathons = async () => {
@@ -89,6 +90,69 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
     }
   };
 
+  const fetchAvailableMembers = async () => {
+    try {
+      setLoadingMembers(true);
+      
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          name,
+          title,
+          bio,
+          avatar_url,
+          github,
+          linkedin,
+          user_skills (
+            level,
+            skill_id,
+            skills (
+              id,
+              name
+            )
+          )
+        `);
+      
+      if (profilesError) throw profilesError;
+      
+      const transformedUsers: UserProfile[] = profilesData.map(profile => ({
+        id: profile.id,
+        name: profile.name || 'HackHub Member',
+        title: profile.title || 'HackHub Member',
+        bio: profile.bio || 'No bio provided',
+        avatar: profile.avatar_url || '',
+        github: profile.github || '',
+        linkedIn: profile.linkedin || '',
+        skills: (profile.user_skills || [])
+          .filter((skill: any) => skill?.skills) // Filter out any null skills
+          .map((skill: any) => ({
+            name: skill.skills.name,
+            level: skill.level
+          }))
+      }));
+      
+      setAvailableMembers(transformedUsers);
+      
+      // If the current user is among the available members, add them to selected members
+      if (user) {
+        const currentUser = transformedUsers.find(member => member.id === user.id);
+        if (currentUser) {
+          setSelectedMembers([currentUser]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching available members:', error);
+      toast({
+        title: "Failed to load members",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
   const handleAddMember = (member: UserProfile) => {
     if (!selectedMembers.find(m => m.id === member.id)) {
       setSelectedMembers([...selectedMembers, member]);
@@ -96,6 +160,15 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
   };
 
   const handleRemoveMember = (id: string) => {
+    // Don't allow removing the current user (team admin)
+    if (id === user?.id) {
+      toast({
+        title: "Cannot remove team admin",
+        description: "As the team creator, you cannot remove yourself from the team.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSelectedMembers(selectedMembers.filter(member => member.id !== id));
   };
 
@@ -151,6 +224,23 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
       
       if (memberError) throw memberError;
       
+      // Add additional team members if any were selected
+      const additionalMembers = selectedMembers.filter(member => member.id !== user.id);
+      
+      if (additionalMembers.length > 0) {
+        const teamMembersData = additionalMembers.map(member => ({
+          team_id: team.id,
+          user_id: member.id,
+          is_admin: false,
+        }));
+        
+        const { error: additionalMembersError } = await supabase
+          .from('team_members')
+          .insert(teamMembersData);
+          
+        if (additionalMembersError) throw additionalMembersError;
+      }
+      
       setTeamName('');
       setDescription('');
       setProjectIdea('');
@@ -160,7 +250,7 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
       onTeamCreated({
         name: teamName,
         description,
-        members: [{ ...availableMembers.find(m => m.id === user.id)! }],
+        members: selectedMembers,
         projectIdea,
       });
       
@@ -181,8 +271,25 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
     }
   };
 
-  const remainingMembers = availableMembers.filter(
-    member => !selectedMembers.find(m => m.id === member.id)
+  const filteredMembers = availableMembers.filter(
+    member => {
+      // Don't show already selected members
+      if (selectedMembers.find(m => m.id === member.id)) {
+        return false;
+      }
+      
+      // Filter by search term if provided
+      if (memberSearchTerm) {
+        const lowerCaseSearch = memberSearchTerm.toLowerCase();
+        return (
+          member.name.toLowerCase().includes(lowerCaseSearch) ||
+          member.title.toLowerCase().includes(lowerCaseSearch) ||
+          member.skills.some(skill => skill.name.toLowerCase().includes(lowerCaseSearch))
+        );
+      }
+      
+      return true;
+    }
   );
 
   return (
@@ -274,7 +381,7 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
                       <div>
                         <p className="text-sm font-medium">{member.name}</p>
                         <p className="text-xs text-muted-foreground">{member.title}</p>
-                        {index === 0 && (
+                        {member.id === user?.id && (
                           <Badge variant="outline" className="text-xs mt-1">Team Admin</Badge>
                         )}
                       </div>
@@ -301,56 +408,75 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
           
           {showMemberSelector && (
             <div className="border rounded-md p-3 max-h-64 overflow-y-auto">
+              <div className="mb-3">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search members by name or skills..."
+                    className="pl-8"
+                    value={memberSearchTerm}
+                    onChange={(e) => setMemberSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+              
               <p className="text-sm font-medium mb-2">Available Members</p>
-              <div className="space-y-2">
-                {remainingMembers.length > 0 ? (
-                  remainingMembers.map(member => (
-                    <div 
-                      key={member.id}
-                      className="flex justify-between items-center p-2 rounded-md hover:bg-accent transition-colors"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="h-7 w-7">
-                          <AvatarImage src={member.avatar} alt={member.name} />
-                          <AvatarFallback>
-                            {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{member.name}</p>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {member.skills.slice(0, 3).map(skill => (
-                              <Badge 
-                                key={skill.name} 
-                                variant="secondary"
-                                className="text-xs py-0 px-1.5"
-                              >
-                                {skill.name}
-                              </Badge>
-                            ))}
-                            {member.skills.length > 3 && (
-                              <span className="text-xs text-muted-foreground">+{member.skills.length - 3} more</span>
-                            )}
+              {loadingMembers ? (
+                <div className="flex justify-center items-center p-4">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span className="text-sm text-muted-foreground">Loading members...</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredMembers.length > 0 ? (
+                    filteredMembers.map(member => (
+                      <div 
+                        key={member.id}
+                        className="flex justify-between items-center p-2 rounded-md hover:bg-accent transition-colors"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Avatar className="h-7 w-7">
+                            <AvatarImage src={member.avatar} alt={member.name} />
+                            <AvatarFallback>
+                              {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium">{member.name}</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {member.skills.slice(0, 3).map(skill => (
+                                <Badge 
+                                  key={skill.name} 
+                                  variant="secondary"
+                                  className="text-xs py-0 px-1.5"
+                                >
+                                  {skill.name}
+                                </Badge>
+                              ))}
+                              {member.skills.length > 3 && (
+                                <span className="text-xs text-muted-foreground">+{member.skills.length - 3} more</span>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <Button 
+                          type="button"
+                          variant="ghost" 
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleAddMember(member)}
+                        >
+                          <Plus size={14} />
+                        </Button>
                       </div>
-                      <Button 
-                        type="button"
-                        variant="ghost" 
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleAddMember(member)}
-                      >
-                        <Plus size={14} />
-                      </Button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No more members available
-                  </p>
-                )}
-              </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      {memberSearchTerm ? 'No members match your search' : 'No more members available'}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
           

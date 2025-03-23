@@ -959,7 +959,6 @@ const Explore = () => {
           <TabsContent value="create-team" className="mt-0">
             {(showTeamCreation || activeTab === 'create-team') && (
               <TeamCreation 
-                availableMembers={sampleUsers} 
                 onTeamCreated={handleTeamCreated} 
               />
             )}
