@@ -57,9 +57,9 @@ const Navbar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <div className="rounded-lg bg-primary p-1.5">
-                <span className="text-primary-foreground font-bold text-lg">HS</span>
+                <span className="text-primary-foreground font-bold text-lg">CL</span>
               </div>
-              <span className="font-semibold text-xl hidden sm:inline-block">HackSync</span>
+              <span className="font-semibold text-xl hidden sm:inline-block">Cluster</span>
             </Link>
           </div>
 
@@ -130,9 +130,9 @@ const Navbar = () => {
                   <div className="flex items-center justify-between">
                     <Link to="/" className="flex items-center space-x-2">
                       <div className="rounded-lg bg-primary p-1.5">
-                        <span className="text-primary-foreground font-bold text-lg">HS</span>
+                        <span className="text-primary-foreground font-bold text-lg">CL</span>
                       </div>
-                      <span className="font-semibold text-xl">HackSync</span>
+                      <span className="font-semibold text-xl">Cluster</span>
                     </Link>
                     <Button 
                       variant="ghost" 

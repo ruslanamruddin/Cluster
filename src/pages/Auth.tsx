@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -20,7 +19,7 @@ const Auth = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">
-          <h1 className="text-3xl font-bold text-center mb-6">Welcome to HackSync</h1>
+          <h1 className="text-3xl font-bold text-center mb-6">Welcome to Cluster</h1>
           <AuthForm />
         </div>
       </div>

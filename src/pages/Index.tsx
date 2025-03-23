@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -43,7 +42,7 @@ const Index = () => {
     <Layout className="py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold tracking-tight">HackSync</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Cluster</h1>
           <p className="mt-4 text-xl text-muted-foreground max-w-2xl mx-auto">
             Build the perfect team for your next hackathon project and manage tasks efficiently
           </p>
@@ -148,7 +147,7 @@ const Index = () => {
         <div className="mt-16 text-center max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold mb-4">Ready to build something amazing?</h2>
           <p className="text-muted-foreground mb-6">
-            HackSync helps you form the perfect team, manage your hackathon projects, and stay organized from start to finish.
+            Cluster helps you form the perfect team, manage your hackathon projects, and stay organized from start to finish.
           </p>
         </div>
       </div>

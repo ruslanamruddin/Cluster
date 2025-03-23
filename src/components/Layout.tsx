@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from 'react';
 import Navbar from './Navbar';
 import { cn } from "@/lib/utils";
@@ -22,7 +21,7 @@ const Layout = ({ children, className }: LayoutProps) => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} HackSync. All rights reserved.
+              © {new Date().getFullYear()} Cluster. All rights reserved.
             </p>
             <div className="flex items-center space-x-4 mt-4 md:mt-0">
               <a 

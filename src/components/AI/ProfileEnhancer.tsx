@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +42,7 @@ export function ProfileEnhancer() {
       };
 
       const prompt = `
-        You are an expert profile writer for a hackathon platform called HackSync.
+        You are an expert profile writer for a hackathon platform called Cluster.
         
         CURRENT PROFILE:
         ${inputBio}

@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,7 +52,7 @@ export function AIAssistant() {
 
     try {
       const prompt = `
-        You are an AI assistant for a hackathon platform called HackSync. You help users with their hackathon projects, 
+        You are an AI assistant for a hackathon platform called Cluster. You help users with their hackathon projects, 
         team formation, and technical questions. Be friendly, helpful, and concise.
         
         Current conversation:
@@ -114,7 +113,7 @@ export function AIAssistant() {
       <CardHeader className="p-3 border-b flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Bot className="h-4 w-4" />
-          HackSync AI Assistant
+          Cluster AI Assistant
         </CardTitle>
         <div className="flex items-center gap-1">
           <Button 

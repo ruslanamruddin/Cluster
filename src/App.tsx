@@ -14,7 +14,6 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { UserProfileProvider } from '@/context/UserProfileContext';
 import { ErrorProvider } from '@/context/ErrorContext';
-import { HackathonProvider } from '@/context/HackathonContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 function App() {
@@ -24,32 +23,30 @@ function App() {
         <ThemeProvider defaultTheme="dark" storageKey="hackhub-theme">
           <AuthProvider>
             <UserProfileProvider>
-              <HackathonProvider>
-                <Router>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/auth" element={<Auth />} />
-                    
-                    {/* Protected Routes */}
-                    <Route element={<ProtectedRoute />}>
-                      <Route path="/profile" element={<Profile />} />
-                      <Route path="/profile-setup" element={<ProfileSetup />} />
-                      <Route path="/ai-tools" element={<AITools />} />
-                      <Route path="/explore" element={<Explore />} />
-                      <Route path="/explore/:id" element={<Explore />} />
+              <Router>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/auth" element={<Auth />} />
+                  
+                  {/* Protected Routes */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/profile-setup" element={<ProfileSetup />} />
+                    <Route path="/ai-tools" element={<AITools />} />
+                    <Route path="/explore" element={<Explore />} />
+                    <Route path="/explore/:id" element={<Explore />} />
 
-                      {/* Routes that require skill analysis */}
-                      <Route element={<SkillsRequiredRoute redirectTo="/profile-setup" />}>
-                        <Route path="/tasks" element={<Tasks />} />
-                      </Route>
+                    {/* Routes that require skill analysis */}
+                    <Route element={<SkillsRequiredRoute redirectTo="/profile-setup" />}>
+                      <Route path="/tasks" element={<Tasks />} />
                     </Route>
-                    
-                    {/* Redirect unknown routes to home */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                  <Toaster />
-                </Router>
-              </HackathonProvider>
+                  </Route>
+                  
+                  {/* Redirect unknown routes to home */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+                <Toaster />
+              </Router>
             </UserProfileProvider>
           </AuthProvider>
         </ThemeProvider>
