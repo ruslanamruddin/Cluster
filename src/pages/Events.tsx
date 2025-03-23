@@ -10,7 +10,7 @@ import EventCreationForm from '@/components/Schedule/EventCreationForm';
 
 const Events = () => {
   const { user } = useAuth();
-  const { currentHackathon, loading: hackathonLoading } = useHackathon();
+  const { currentHackathon, isLoading: hackathonLoading } = useHackathon();
   const [isOrganizer, setIsOrganizer] = useState(false);
 
   useEffect(() => {
