@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -26,6 +25,17 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+
+// Create a new interface that extends UserProfile to include isAdmin
+interface TeamMember {
+  id: string;
+  name: string;
+  avatar?: string;
+  title: string;
+  bio: string;
+  skills: any[];
+  isAdmin?: boolean;
+}
 
 const Teams = () => {
   const { id } = useParams<{ id: string }>();
@@ -79,7 +89,7 @@ const Teams = () => {
         if (teamError) throw teamError;
         
         // Transform the data
-        const members = teamData.team_members
+        const members: TeamMember[] = teamData.team_members
           .filter((member: any) => member.profiles)
           .map((member: any) => ({
             id: member.profiles.id,
