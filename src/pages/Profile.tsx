@@ -47,23 +47,69 @@ const Profile = () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+        console.log("Fetching profile for user:", user.id);
+        const response = await supabaseApi.getById('profiles', user.id);
         
-        if (error) throw error;
-        
-        if (data) {
+        if (response.error) {
+          // If the profile doesn't exist yet, create a default one
+          if (response.status === 404) {
+            console.log("Profile not found, creating default profile");
+            
+            const defaultProfile = {
+              id: user.id,
+              name: user.email?.split('@')[0] || 'User',
+              title: 'HackHub Member',
+              bio: 'No bio yet',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            // Create a new profile
+            const createResponse = await supabaseApi.insert('profiles', defaultProfile);
+            if (createResponse.error) {
+              console.error("Error creating default profile:", createResponse.error);
+              throw new Error(createResponse.error);
+            }
+            
+            const data = createResponse.data;
+            if (data) {
+              const profile: UserProfile = {
+                id: data.id,
+                name: data.name,
+                title: data.title,
+                bio: data.bio,
+                linkedIn: data.linkedin_url || '',
+                github: data.github_url || '',
+                avatar: data.avatar_url || '',
+                skills: skills || [],
+                skillsAnalyzed: hasCompletedSkillAnalysis
+              };
+              
+              setUserProfile(profile);
+              setFormData({
+                name: profile.name,
+                title: profile.title,
+                bio: profile.bio,
+                linkedIn: profile.linkedIn,
+                github: profile.github
+              });
+            }
+          } else {
+            console.error("Error fetching profile:", response.error);
+            throw new Error(response.error);
+          }
+        } else if (response.data) {
+          console.log("Profile data retrieved:", response.data);
+          
+          const data = response.data;
           const profile: UserProfile = {
             id: data.id,
             name: data.name || user.email?.split('@')[0] || 'User',
             title: data.title || 'HackHub Member',
             bio: data.bio || 'No bio yet',
-            linkedIn: data.linkedin_url,
-            github: data.github_url,
-            avatar: data.avatar_url,
+            linkedIn: data.linkedin_url || '',
+            github: data.github_url || '',
+            avatar: data.avatar_url || '',
             skills: skills || [],
             skillsAnalyzed: hasCompletedSkillAnalysis
           };
@@ -73,12 +119,12 @@ const Profile = () => {
             name: profile.name,
             title: profile.title,
             bio: profile.bio,
-            linkedIn: profile.linkedIn || '',
-            github: profile.github || ''
+            linkedIn: profile.linkedIn,
+            github: profile.github
           });
         }
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('Error in fetchProfile:', error);
         toast({
           title: "Error loading profile",
           description: "We couldn't load your profile data. Please try again.",
@@ -101,6 +147,10 @@ const Profile = () => {
   const handleSaveProfile = async () => {
     if (!user) return;
     
+    // Log what we're trying to save
+    console.log("Saving profile with data:", formData);
+    
+    // Create a properly structured profile object
     const profileData = {
       id: user.id,
       name: formData.name,
@@ -111,21 +161,53 @@ const Profile = () => {
       updated_at: new Date().toISOString()
     };
     
-    const response = await supabaseApi.upsert('profiles', profileData);
-    
-    const success = showResponseToast(response, {
-      success: "Your profile has been successfully updated.",
-      error: "Update failed"
-    });
-    
-    if (success && userProfile && response.data) {
-      setUserProfile({
-        ...userProfile,
-        name: formData.name,
-        title: formData.title,
-        bio: formData.bio,
-        linkedIn: formData.linkedIn,
-        github: formData.github
+    // Attempt a direct Supabase operation first for debugging
+    try {
+      console.log("Attempting direct Supabase operation...");
+      const { data: directData, error: directError } = await supabase
+        .from('profiles')
+        .upsert(profileData, { 
+          onConflict: 'id',
+          returning: 'minimal'
+        });
+        
+      if (directError) {
+        console.error("Direct Supabase error:", directError);
+        toast({
+          title: "Direct update failed",
+          description: `Error: ${directError.message || 'Unknown error'}`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log("Direct operation successful");
+      
+      // Now try using our API utility
+      const response = await supabaseApi.upsert('profiles', profileData);
+      console.log("API response:", response);
+      
+      const success = showResponseToast(response, {
+        success: "Your profile has been successfully updated.",
+        error: "Update failed"
+      });
+      
+      if (success && userProfile && response.data) {
+        setUserProfile({
+          ...userProfile,
+          name: formData.name,
+          title: formData.title,
+          bio: formData.bio,
+          linkedIn: formData.linkedIn,
+          github: formData.github
+        });
+      }
+    } catch (error) {
+      console.error("Profile save error:", error);
+      toast({
+        title: "Update failed",
+        description: "Could not update profile. Check console for details.",
+        variant: "destructive"
       });
     }
   };

@@ -179,19 +179,49 @@ export const supabaseApi = {
     options: { onConflict?: string } = {}
   ): Promise<ApiResponse<T>> {
     try {
+      // Add debug logging
+      console.log(`Upserting to ${table} with data:`, data);
+      
+      // Ensure data has all required fields
+      if (!data.id && table === 'profiles') {
+        console.error('Missing ID for profiles upsert');
+        return {
+          data: null,
+          error: 'Missing required ID field for profile update',
+          status: 400
+        };
+      }
+      
       const { data: record, error } = await supabase
         .from(table)
         .upsert({
           ...data,
           updated_at: new Date().toISOString()
-        }, { onConflict: options.onConflict || 'id' })
-        .select()
+        }, { 
+          onConflict: options.onConflict || 'id',
+          returning: 'minimal'  // Changed to minimal to avoid selection errors
+        });
+      
+      if (error) {
+        console.error(`Upsert error for ${table}:`, error);
+        throw error;
+      }
+      
+      // Since we're returning minimal, we need to manually fetch the record
+      const { data: updatedRecord, error: fetchError } = await supabase
+        .from(table)
+        .select('*')
+        .eq('id', data.id)
         .single();
+        
+      if (fetchError) {
+        console.error(`Error fetching updated record:`, fetchError);
+        throw fetchError;
+      }
       
-      if (error) throw error;
-      
-      return { data: record, error: null, status: 200 };
+      return { data: updatedRecord, error: null, status: 200 };
     } catch (error) {
+      console.error(`Full upsert error details for ${table}:`, error);
       return { 
         data: null, 
         error: handleSupabaseError(error, `Failed to upsert ${table} record`),

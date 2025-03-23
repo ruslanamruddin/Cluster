@@ -24,7 +24,14 @@ export const supabase = createClient<Database>(
   SUPABASE_PUBLISHABLE_KEY,
   {
     auth: {
-      persistSession: true
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    },
+    global: {
+      headers: {
+        'Content-Type': 'application/json'
+      }
     },
     realtime: {
       params: {
@@ -33,3 +40,18 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Debug function to test permissions
+export const testPermissions = async () => {
+  const { data: sessionData } = await supabase.auth.getSession();
+  console.log("Current session:", sessionData);
+  
+  try {
+    const { data, error } = await supabase.from('profiles').select('*').limit(1);
+    console.log("Test query result:", { data, error });
+    return { success: !error, error, data };
+  } catch (err) {
+    console.error("Test query error:", err);
+    return { success: false, error: err };
+  }
+};
