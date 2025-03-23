@@ -7,6 +7,7 @@ import Profile from '@/pages/Profile';
 import Explore from '@/pages/Explore';
 import Teams from '@/pages/Teams';
 import Tasks from '@/pages/Tasks';
+import Schedule from '@/pages/Schedule';
 import NotFound from '@/pages/NotFound';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
@@ -25,6 +26,7 @@ function App() {
           <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
           <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
           <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+          <Route path="/schedule" element={<Schedule />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
