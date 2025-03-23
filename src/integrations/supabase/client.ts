@@ -29,9 +29,12 @@ export type TeamJoinRequest = {
   updated_at: string;
 };
 
-// Supabase table names as a type
+// Use string literal unions for table names to avoid TypeScript issues
 export type TableName = keyof Database['public']['Tables'];
 export type FunctionName = keyof Database['public']['Functions'];
+
+// Simple record type for debugging
+export type SimpleRecord = Record<string, any>;
 
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
@@ -55,7 +58,7 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Debug functions with type casting to avoid deep instantiation
+// Debug functions with simplified types to avoid deep instantiation
 export const testPermissions = async () => {
   const { data: sessionData } = await supabase.auth.getSession();
   console.log("Current session:", sessionData);
@@ -74,7 +77,7 @@ export const testPermissions = async () => {
   }
 };
 
-// Debug function with type casting
+// Debug function with simplified types
 export const inspectTableSchema = async (tableName: string) => {
   try {
     const { data: tableData, error: tableError } = await supabase
@@ -105,7 +108,7 @@ export const inspectTableSchema = async (tableName: string) => {
   }
 };
 
-// Debug function with type casting
+// Debug function with simplified types
 export const checkRlsPermissions = async (tableName: string) => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();

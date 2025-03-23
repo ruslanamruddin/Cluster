@@ -23,6 +23,7 @@ import TeamTab from '@/components/TeamTab';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, TeamJoinRequest } from '@/integrations/supabase/client';
 import { supabaseApi, showResponseToast } from '@/integrations/supabase/api';
+import { transformTeamsFromDB } from '@/utils/dataTransformers';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,9 +64,10 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
   const fetchTeams = async () => {
     setIsLoading(true);
     try {
-      const response = await supabaseApi.getMany<Team[]>('teams');
+      const response = await supabaseApi.getMany('teams');
       if (response.data) {
-        setTeams(Array.isArray(response.data) ? response.data : []);
+        const transformedTeams = transformTeamsFromDB(Array.isArray(response.data) ? response.data : []);
+        setTeams(transformedTeams);
       } else if (response.error) {
         console.error('Error fetching teams:', response.error);
         toast({
@@ -114,7 +116,7 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     }
 
     try {
-      const response = await supabaseApi.insert<Team>('teams', {
+      const response = await supabaseApi.insert('teams', {
         name: teamName,
         description: teamDescription,
         project_idea: teamProjectIdea,
@@ -168,7 +170,7 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     }
 
     try {
-      const response = await supabaseApi.update<Team>('teams', selectedTeam.id, {
+      const response = await supabaseApi.update('teams', selectedTeam.id, {
         name: teamName,
         description: teamDescription,
         project_idea: teamProjectIdea,
