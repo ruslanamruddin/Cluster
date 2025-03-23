@@ -286,6 +286,38 @@ export type Database = {
           },
         ]
       }
+      team_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_skills_needed: {
         Row: {
           created_at: string
@@ -472,6 +504,36 @@ export type Database = {
           team: Json | null
         }
         Relationships: []
+      }
+      team_join_requests_view: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          status: string | null
+          team_id: string | null
+          updated_at: string | null
+          user_avatar: string | null
+          user_id: string | null
+          user_name: string | null
+          user_skills: Json | null
+          user_title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_join_requests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_join_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members_view: {
         Row: {

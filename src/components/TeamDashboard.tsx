@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/components/ui/use-toast';
 import { 
   Users, 
@@ -23,12 +24,16 @@ import {
   Save, 
   X, 
   AlertCircle,
-  Sparkles 
+  Sparkles,
+  BellDot,
+  MessageSquare
 } from 'lucide-react';
 import { Team } from './TeamList';
 import { UserProfile } from './ProfileCard';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import TeamJoinRequests from './TeamJoinRequests';
+import TeamChat from './TeamChat';
 
 interface TeamDashboardProps {
   userTeams: Team[];
@@ -43,9 +48,82 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
   const [editedProjectIdea, setEditedProjectIdea] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [requestCounts, setRequestCounts] = useState<Record<string, number>>({});
+  const [userRoles, setUserRoles] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState<string>("details");
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (userTeams.length > 0) {
+      setSelectedTeam(userTeams[0]);
+      fetchTeamAdminStatus(userTeams);
+      fetchPendingRequestCounts(userTeams);
+    }
+  }, [userTeams]);
+
+  const fetchTeamAdminStatus = async (teams: Team[]) => {
+    if (!user) return;
+    
+    try {
+      // For each team, check if current user is an admin
+      const promises = teams.map(async (team) => {
+        const { data, error } = await supabase
+          .from('team_members')
+          .select('is_admin')
+          .eq('team_id', team.id)
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) throw error;
+        
+        return { teamId: team.id, isAdmin: data?.is_admin || false };
+      });
+      
+      const results = await Promise.all(promises);
+      
+      const rolesMap: Record<string, boolean> = {};
+      results.forEach(result => {
+        rolesMap[result.teamId] = result.isAdmin;
+      });
+      
+      setUserRoles(rolesMap);
+    } catch (error) {
+      console.error('Error fetching admin status:', error);
+    }
+  };
+
+  const fetchPendingRequestCounts = async (teams: Team[]) => {
+    if (!user) return;
+    
+    try {
+      // For each team, get count of pending requests if user is admin
+      const promises = teams.map(async (team) => {
+        const { data, error } = await supabase
+          .from('team_join_requests')
+          .select('id', { count: 'exact' })
+          .eq('team_id', team.id)
+          .eq('status', 'pending');
+        
+        if (error) throw error;
+        
+        return { teamId: team.id, count: data?.length || 0 };
+      });
+      
+      const results = await Promise.all(promises);
+      
+      const countsMap: Record<string, number> = {};
+      results.forEach(result => {
+        countsMap[result.teamId] = result.count;
+      });
+      
+      setRequestCounts(countsMap);
+    } catch (error) {
+      console.error('Error fetching request counts:', error);
+    }
+  };
 
   const handleViewTeam = (teamId: string) => {
     navigate(`/explore/${teamId}`);
@@ -166,6 +244,10 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
     }
   };
 
+  const handleSelectTeam = (team: Team) => {
+    setSelectedTeam(team);
+  };
+
   if (userTeams.length === 0) {
     return (
       <Card className="border-dashed">
@@ -198,121 +280,215 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
         Your Teams
       </h2>
       
-      {userTeams.map(team => (
-        <Card key={team.id} className="overflow-hidden">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex justify-between items-start">
-              <span>{team.name}</span>
-              <Badge 
-                variant={team.isRecruiting ? "default" : "secondary"} 
-                className="ml-2"
-              >
-                {team.isRecruiting ? 'Recruiting' : 'Closed'}
-              </Badge>
-            </CardTitle>
-            
-            {editingTeam !== team.id ? (
-              <CardDescription className="line-clamp-2">{team.description}</CardDescription>
-            ) : (
-              <div className="mt-2">
-                <Input
-                  value={editedDescription}
-                  onChange={(e) => setEditedDescription(e.target.value)}
-                  placeholder="Team description"
-                  className="mb-2"
-                />
-              </div>
-            )}
-          </CardHeader>
-          
-          <CardContent className="pb-4 space-y-4">
-            <div>
-              <h3 className="text-sm font-medium mb-2">Project Idea</h3>
-              {editingTeam !== team.id ? (
-                <p className="text-sm text-muted-foreground">{team.projectIdea}</p>
-              ) : (
-                <Textarea
-                  value={editedProjectIdea}
-                  onChange={(e) => setEditedProjectIdea(e.target.value)}
-                  placeholder="Project idea"
-                  rows={3}
-                />
-              )}
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium mb-2">Team Members ({team.members.length})</h3>
-              <div className="flex -space-x-2 overflow-hidden">
-                {team.members.map((member) => (
-                  <Avatar key={member.id} className="border-2 border-background h-8 w-8">
-                    <AvatarImage src={member.avatar} alt={member.name} />
-                    <AvatarFallback>
-                      {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-                {team.members.length > 5 && (
-                  <div className="flex items-center justify-center bg-muted text-muted-foreground rounded-full border-2 border-background h-8 w-8 text-xs">
-                    +{team.members.length - 5}
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-          
-          <CardFooter className="pt-2 flex justify-between">
-            {editingTeam !== team.id ? (
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => handleViewTeam(team.id)}
-                >
-                  View Details
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => handleEditTeam(team)}
-                >
-                  <Edit2 className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleCancelEdit}
-                >
-                  <X className="h-4 w-4 mr-1" />
-                  Cancel
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={() => handleSaveTeamChanges(team.id)}
-                  disabled={isLoading}
-                >
-                  <Save className="h-4 w-4 mr-1" />
-                  Save
-                </Button>
-              </div>
-            )}
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => handleLeaveTeam(team.id)}
-              disabled={isLoading}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="md:col-span-1 space-y-4">
+          {userTeams.map(team => (
+            <Card 
+              key={team.id} 
+              className={`overflow-hidden cursor-pointer hover:border-primary/40 transition-colors ${
+                selectedTeam?.id === team.id ? 'border-primary' : ''
+              }`}
+              onClick={() => handleSelectTeam(team)}
             >
-              <LogOut className="h-4 w-4 mr-1" />
-              Leave
-            </Button>
-          </CardFooter>
-        </Card>
-      ))}
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg">{team.name}</CardTitle>
+                  {requestCounts[team.id] > 0 && userRoles[team.id] && (
+                    <Badge className="bg-primary text-primary-foreground">
+                      <BellDot className="h-3 w-3 mr-1" />
+                      {requestCounts[team.id]}
+                    </Badge>
+                  )}
+                </div>
+                <CardDescription className="line-clamp-2">
+                  {team.members.length} members
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+        
+        <div className="md:col-span-3">
+          {selectedTeam && (
+            <Card>
+              <CardHeader className="pb-3 border-b">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <CardTitle>{selectedTeam.name}</CardTitle>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Badge 
+                      variant={selectedTeam.isRecruiting ? "default" : "secondary"} 
+                    >
+                      {selectedTeam.isRecruiting ? 'Recruiting' : 'Closed'}
+                    </Badge>
+                    
+                    {userRoles[selectedTeam.id] && (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200">
+                        Team Admin
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab}>
+                <CardHeader className="pb-0 pt-2">
+                  <TabsList className="grid grid-cols-3 w-full">
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                    <TabsTrigger value="chat" className="flex items-center gap-1">
+                      <MessageSquare className="h-4 w-4" />
+                      Chat
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="requests" 
+                      className="flex items-center gap-1"
+                      disabled={!userRoles[selectedTeam.id]}
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      Requests
+                      {requestCounts[selectedTeam.id] > 0 && (
+                        <Badge className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]">
+                          {requestCounts[selectedTeam.id]}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
+                </CardHeader>
+                
+                <TabsContent value="details" className="m-0">
+                  <CardContent className="pt-6 space-y-4">
+                    {editingTeam !== selectedTeam.id ? (
+                      <>
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Description</h3>
+                          <p className="text-sm text-muted-foreground">{selectedTeam.description}</p>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Project Idea</h3>
+                          <p className="text-sm text-muted-foreground">{selectedTeam.projectIdea}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium">Description</h3>
+                          <Input
+                            value={editedDescription}
+                            onChange={(e) => setEditedDescription(e.target.value)}
+                            placeholder="Team description"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium">Project Idea</h3>
+                          <Textarea
+                            value={editedProjectIdea}
+                            onChange={(e) => setEditedProjectIdea(e.target.value)}
+                            placeholder="Project idea"
+                            rows={3}
+                          />
+                        </div>
+                      </>
+                    )}
+                    
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Team Members ({selectedTeam.members.length})</h3>
+                      <div className="flex -space-x-2 overflow-hidden">
+                        {selectedTeam.members.map((member) => (
+                          <Avatar key={member.id} className="border-2 border-background h-8 w-8">
+                            <AvatarImage src={member.avatar} alt={member.name} />
+                            <AvatarFallback>
+                              {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+                        {selectedTeam.members.length > 5 && (
+                          <div className="flex items-center justify-center bg-muted text-muted-foreground rounded-full border-2 border-background h-8 w-8 text-xs">
+                            +{selectedTeam.members.length - 5}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                  
+                  <CardFooter className="flex justify-between pt-2 border-t">
+                    {editingTeam !== selectedTeam.id ? (
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewTeam(selectedTeam.id)}
+                        >
+                          View Details
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleEditTeam(selectedTeam)}
+                        >
+                          <Edit2 className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleCancelEdit}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleSaveTeamChanges(selectedTeam.id)}
+                          disabled={isLoading}
+                        >
+                          <Save className="h-4 w-4 mr-1" />
+                          Save
+                        </Button>
+                      </div>
+                    )}
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleLeaveTeam(selectedTeam.id)}
+                      disabled={isLoading}
+                    >
+                      <LogOut className="h-4 w-4 mr-1" />
+                      Leave
+                    </Button>
+                  </CardFooter>
+                </TabsContent>
+                
+                <TabsContent value="chat" className="m-0 p-0">
+                  <TeamChat 
+                    teamId={selectedTeam.id}
+                    teamMembers={selectedTeam.members.map(member => ({
+                      id: member.id,
+                      name: member.name,
+                      avatar: member.avatar
+                    }))}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="requests" className="m-0">
+                  <CardContent className="pt-6">
+                    <TeamJoinRequests 
+                      teamId={selectedTeam.id}
+                      isAdmin={userRoles[selectedTeam.id] || false}
+                    />
+                  </CardContent>
+                </TabsContent>
+              </Tabs>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
