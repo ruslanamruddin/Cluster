@@ -9,7 +9,7 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJh
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Simpler types that won't cause TypeScript to go into infinite recursion
+// Simple response types that won't cause TypeScript to go into infinite recursion
 export type JoinRequestResponse = {
   id?: string;
   status?: string;
@@ -30,7 +30,7 @@ export type TeamJoinRequest = {
   updated_at: string;
 };
 
-// Known table names as literal union type to avoid string issues
+// String literal type for table names to avoid type errors
 export type TableName = 
   | 'teams' 
   | 'team_members' 
@@ -45,7 +45,7 @@ export type TableName =
   | 'settings'
   | 'user_roles';
 
-// Known function names as literal union type
+// String literal type for function names
 export type FunctionName = 
   | 'request_to_join_team' 
   | 'process_join_request'
@@ -56,7 +56,7 @@ export type FunctionName =
   | 'check_if_user_is_admin'
   | 'transform_team_to_camelcase';
 
-// Simple record type for debugging
+// Simple record type
 export type SimpleRecord = Record<string, any>;
 
 export const supabase = createClient<Database>(
@@ -81,8 +81,8 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Debug functions with simplified types to avoid deep instantiation
-export const testPermissions = async () => {
+// Debug function with simple types
+export const testPermissions = async (): Promise<SimpleRecord> => {
   const { data: sessionData } = await supabase.auth.getSession();
   console.log("Current session:", sessionData);
   
@@ -100,8 +100,8 @@ export const testPermissions = async () => {
   }
 };
 
-// Debug function with simplified types
-export const inspectTableSchema = async (tableName: TableName) => {
+// Debug function with simple types
+export const inspectTableSchema = async (tableName: TableName): Promise<SimpleRecord> => {
   try {
     const { data: tableData, error: tableError } = await supabase
       .from(tableName)
@@ -131,8 +131,8 @@ export const inspectTableSchema = async (tableName: TableName) => {
   }
 };
 
-// Debug function with simplified types
-export const checkRlsPermissions = async (tableName: TableName) => {
+// Debug function with simple types
+export const checkRlsPermissions = async (tableName: TableName): Promise<SimpleRecord> => {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     console.log("Current session:", sessionData);
