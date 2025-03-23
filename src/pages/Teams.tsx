@@ -355,7 +355,7 @@ const Teams = () => {
                     Team Members ({team.members.length})
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {team.members.map((member) => (
+                    {team.members.map((member: TeamMember) => (
                       <div key={member.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
                         <Avatar className="h-10 w-10 border-2 border-border">
                           <AvatarImage src={member.avatar} alt={member.name} />
