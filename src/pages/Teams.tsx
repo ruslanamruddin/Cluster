@@ -170,7 +170,7 @@ const Teams = () => {
     if (!user || !id) return;
     
     try {
-      const response = await supabaseApi.getMany('team_join_requests', {
+      const response = await supabaseApi.getMany<Database['public']['Tables']['team_join_requests']['Row'][]>('team_join_requests', {
         select: 'status',
         filters: {
           team_id: id,

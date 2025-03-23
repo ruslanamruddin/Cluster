@@ -2,6 +2,7 @@
 import { supabase } from './client';
 import { toast } from '@/components/ui/use-toast';
 import { Database } from './types';
+import { Json } from './types';
 
 type Tables = Database['public']['Tables'];
 type TableNames = keyof Tables;
@@ -47,8 +48,8 @@ const schemaCache: Record<string, string[]> = {};
 /**
  * Sanitizes data to match table schema
  */
-async function sanitizeDataForTable(
-  table: TableNames, 
+async function sanitizeDataForTable<T extends TableNames>(
+  table: T, 
   data: Record<string, any>
 ): Promise<Record<string, any>> {
   // If we don't have schema info for this table yet, try to get it
@@ -172,8 +173,8 @@ export const supabaseApi = {
   /**
    * Insert a new record
    */
-  async insert<T>(
-    table: TableNames,
+  async insert<T, K extends TableNames = TableNames>(
+    table: K,
     data: Record<string, any>
   ): Promise<ApiResponse<T>> {
     try {
@@ -184,13 +185,13 @@ export const supabaseApi = {
       
       const { data: record, error } = await supabase
         .from(table)
-        .insert(sanitizedData)
+        .insert(sanitizedData as Tables[K]['Insert'])
         .select()
         .single();
       
       if (error) throw error;
       
-      return { data: record as T, error: null, status: 201 };
+      return { data: record as unknown as T, error: null, status: 201 };
     } catch (error) {
       return { 
         data: null, 
@@ -203,8 +204,8 @@ export const supabaseApi = {
   /**
    * Update an existing record
    */
-  async update<T>(
-    table: TableNames,
+  async update<T, K extends TableNames = TableNames>(
+    table: K,
     id: string,
     data: Record<string, any>,
     column: string = 'id'
@@ -220,14 +221,14 @@ export const supabaseApi = {
       
       const { data: record, error } = await supabase
         .from(table)
-        .update(sanitizedData)
+        .update(sanitizedData as Tables[K]['Update'])
         .eq(column, id)
         .select()
         .single();
       
       if (error) throw error;
       
-      return { data: record as T, error: null, status: 200 };
+      return { data: record as unknown as T, error: null, status: 200 };
     } catch (error) {
       return { 
         data: null, 
@@ -240,8 +241,8 @@ export const supabaseApi = {
   /**
    * Upsert (insert or update) a record
    */
-  async upsert<T>(
-    table: TableNames,
+  async upsert<T, K extends TableNames = TableNames>(
+    table: K,
     data: Record<string, any>,
     options: { onConflict?: string } = {}
   ): Promise<ApiResponse<T>> {
@@ -270,7 +271,7 @@ export const supabaseApi = {
       // Proceed with upsert using sanitized data
       const { data: record, error } = await supabase
         .from(table)
-        .upsert(sanitizedData, { 
+        .upsert(sanitizedData as Tables[K]['Insert'], { 
           onConflict: options.onConflict || 'id',
           returning: 'minimal'  // Changed to minimal to avoid selection errors
         });
@@ -292,7 +293,7 @@ export const supabaseApi = {
         throw fetchError;
       }
       
-      return { data: updatedRecord as T, error: null, status: 200 };
+      return { data: updatedRecord as unknown as T, error: null, status: 200 };
     } catch (error) {
       console.error(`Full upsert error details for ${table}:`, error);
       return { 
@@ -334,7 +335,7 @@ export const supabaseApi = {
    */
   async rpc<T>(
     functionName: FunctionNames,
-    params: Record<string, any> = {}
+    params: Parameters<Database['public']['Functions'][typeof functionName]>[0] = {}
   ): Promise<ApiResponse<T>> {
     try {
       const { data, error } = await supabase.rpc(functionName, params);

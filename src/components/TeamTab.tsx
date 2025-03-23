@@ -11,6 +11,7 @@ import TeamDashboard from './TeamDashboard';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, JoinRequestResponse } from '@/integrations/supabase/client';
 import { supabaseApi, showResponseToast } from '@/integrations/supabase/api';
+import { Database } from '@/integrations/supabase/types';
 
 interface TeamTabProps {
   teams: Team[];
@@ -90,7 +91,7 @@ const TeamTab: React.FC<TeamTabProps> = ({
     if (!user) return;
     
     try {
-      const response = await supabaseApi.getMany<TeamJoinRequest[]>('team_join_requests', {
+      const response = await supabaseApi.getMany<Database['public']['Tables']['team_join_requests']['Row'][]>('team_join_requests', {
         select: 'team_id, status',
         filters: { user_id: user.id }
       });

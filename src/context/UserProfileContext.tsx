@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseApi } from '@/integrations/supabase/api';
 import { Skill } from '@/components/ProfileCard';
+import { Database } from '@/integrations/supabase/types';
 
 interface UserProfileState {
   hasCompletedSkillAnalysis: boolean;
@@ -45,7 +46,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       try {
         // Check if user has profile data with skills in Supabase
-        const response = await supabaseApi.getById<UserProfileData>(
+        const response = await supabaseApi.getById<Database['public']['Tables']['user_profiles']['Row']>(
           'user_profiles',
           user.id,
           'user_id',
@@ -60,7 +61,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (response.data) {
           setState({
             hasCompletedSkillAnalysis: response.data.has_completed_skill_analysis || false,
-            skills: response.data.skills || [],
+            skills: (response.data.skills as Skill[]) || [],
             isLoading: false,
           });
         } else {
