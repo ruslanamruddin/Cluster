@@ -12,6 +12,8 @@ import Auth from "./pages/Auth";
 import ResumeUpload from "./pages/ResumeUpload";
 import Explore from "./pages/Explore";
 import NotFound from "./pages/NotFound";
+import Teams from "./pages/Teams";
+import TeamDashboard from "./pages/TeamDashboard";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +29,8 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/resume-upload" element={<ResumeUpload />} />
             <Route path="/explore" element={<Explore />} />
+            <Route path="/teams" element={<Teams />} />
+            <Route path="/team/:teamId" element={<TeamDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AnimatePresence>
