@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,13 +59,13 @@ const sampleSchedule = [
   }
 ];
 
-// Sample team tasks with completion times
+// Sample team tasks with completion times - updating the status values to match the expected union type
 const sampleTeamTasks = [
   {
     id: '1',
     title: 'Project Planning',
     assignedTo: 'Alex Johnson',
-    status: 'completed',
+    status: 'completed' as const,
     startTime: '2023-07-15T13:30:00',
     completionTime: '2023-07-15T15:30:00',
     duration: 120, // minutes
@@ -75,7 +74,7 @@ const sampleTeamTasks = [
     id: '2',
     title: 'API Integration',
     assignedTo: 'Sam Rodriguez',
-    status: 'completed',
+    status: 'completed' as const,
     startTime: '2023-07-15T16:00:00',
     completionTime: '2023-07-15T19:00:00',
     duration: 180,
@@ -84,7 +83,7 @@ const sampleTeamTasks = [
     id: '3',
     title: 'Frontend Implementation',
     assignedTo: 'Taylor Kim',
-    status: 'in-progress',
+    status: 'in-progress' as const,
     startTime: '2023-07-16T09:00:00',
     completionTime: null,
     estimatedDuration: 480,
@@ -93,7 +92,7 @@ const sampleTeamTasks = [
     id: '4',
     title: 'Database Design',
     assignedTo: 'Jordan Patel',
-    status: 'pending',
+    status: 'pending' as const,
     startTime: '2023-07-16T13:00:00',
     completionTime: null,
     estimatedDuration: 240,
@@ -102,7 +101,7 @@ const sampleTeamTasks = [
     id: '5',
     title: 'Testing',
     assignedTo: 'Casey Chen',
-    status: 'pending',
+    status: 'pending' as const,
     startTime: '2023-07-17T09:00:00',
     completionTime: null,
     estimatedDuration: 180,
