@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,12 @@ interface TeamTabProps {
   onJoinRequest: (teamId: string) => void;
   onViewDetails: (team: Team) => void;
   refreshTeams: () => Promise<void>;
+}
+
+// Define the interface for team join requests
+interface TeamJoinRequest {
+  team_id: string;
+  status: string;
 }
 
 const TeamTab: React.FC<TeamTabProps> = ({
@@ -83,7 +90,7 @@ const TeamTab: React.FC<TeamTabProps> = ({
     if (!user) return;
     
     try {
-      const response = await supabaseApi.getMany('team_join_requests', {
+      const response = await supabaseApi.getMany<TeamJoinRequest[]>('team_join_requests', {
         select: 'team_id, status',
         filters: { user_id: user.id }
       });

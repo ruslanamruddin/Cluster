@@ -1,5 +1,12 @@
+
 import { supabase } from './client';
 import { toast } from '@/components/ui/use-toast';
+import { Database } from './types';
+
+type Tables = Database['public']['Tables'];
+type TableNames = keyof Tables;
+type Functions = Database['public']['Functions'];
+type FunctionNames = keyof Functions;
 
 /**
  * Generic API response type
@@ -41,11 +48,11 @@ const schemaCache: Record<string, string[]> = {};
  * Sanitizes data to match table schema
  */
 async function sanitizeDataForTable(
-  table: string, 
+  table: TableNames, 
   data: Record<string, any>
 ): Promise<Record<string, any>> {
   // If we don't have schema info for this table yet, try to get it
-  if (!schemaCache[table]) {
+  if (!schemaCache[table as string]) {
     try {
       // First try to infer schema from a sample record
       const { data: sampleData, error } = await supabase
@@ -54,8 +61,8 @@ async function sanitizeDataForTable(
         .limit(1);
       
       if (!error && sampleData && sampleData.length > 0) {
-        schemaCache[table] = Object.keys(sampleData[0]);
-        console.log(`Schema for ${table} cached:`, schemaCache[table]);
+        schemaCache[table as string] = Object.keys(sampleData[0]);
+        console.log(`Schema for ${table} cached:`, schemaCache[table as string]);
       }
     } catch (e) {
       console.error(`Failed to infer schema for ${table}:`, e);
@@ -63,12 +70,12 @@ async function sanitizeDataForTable(
   }
   
   // If we have schema info, sanitize the data
-  if (schemaCache[table] && schemaCache[table].length > 0) {
+  if (schemaCache[table as string] && schemaCache[table as string].length > 0) {
     const sanitized: Record<string, any> = {};
     
     // Only include fields that exist in the schema
     Object.keys(data).forEach(key => {
-      if (schemaCache[table].includes(key)) {
+      if (schemaCache[table as string].includes(key)) {
         sanitized[key] = data[key];
       } else {
         console.warn(`Column '${key}' not found in '${table}' schema, removing it`);
@@ -90,7 +97,7 @@ export const supabaseApi = {
    * Fetch a record by ID
    */
   async getById<T>(
-    table: string,
+    table: TableNames,
     id: string,
     column: string = 'id',
     select: string = '*'
@@ -104,7 +111,7 @@ export const supabaseApi = {
       
       if (error) throw error;
       
-      return { data, error: null, status: 200 };
+      return { data: data as T, error: null, status: 200 };
     } catch (error) {
       return { 
         data: null, 
@@ -118,14 +125,14 @@ export const supabaseApi = {
    * Fetch multiple records with optional filters
    */
   async getMany<T>(
-    table: string,
+    table: TableNames,
     options: {
       select?: string;
       filters?: Record<string, any>;
       order?: { column: string; ascending?: boolean };
       limit?: number;
     } = {}
-  ): Promise<ApiResponse<T[]>> {
+  ): Promise<ApiResponse<T>> {
     try {
       const { select = '*', filters = {}, order, limit } = options;
       
@@ -152,7 +159,7 @@ export const supabaseApi = {
       
       if (error) throw error;
       
-      return { data, error: null, status: 200 };
+      return { data: data as T, error: null, status: 200 };
     } catch (error) {
       return { 
         data: null, 
@@ -166,7 +173,7 @@ export const supabaseApi = {
    * Insert a new record
    */
   async insert<T>(
-    table: string,
+    table: TableNames,
     data: Record<string, any>
   ): Promise<ApiResponse<T>> {
     try {
@@ -183,7 +190,7 @@ export const supabaseApi = {
       
       if (error) throw error;
       
-      return { data: record, error: null, status: 201 };
+      return { data: record as T, error: null, status: 201 };
     } catch (error) {
       return { 
         data: null, 
@@ -197,7 +204,7 @@ export const supabaseApi = {
    * Update an existing record
    */
   async update<T>(
-    table: string,
+    table: TableNames,
     id: string,
     data: Record<string, any>,
     column: string = 'id'
@@ -220,7 +227,7 @@ export const supabaseApi = {
       
       if (error) throw error;
       
-      return { data: record, error: null, status: 200 };
+      return { data: record as T, error: null, status: 200 };
     } catch (error) {
       return { 
         data: null, 
@@ -234,7 +241,7 @@ export const supabaseApi = {
    * Upsert (insert or update) a record
    */
   async upsert<T>(
-    table: string,
+    table: TableNames,
     data: Record<string, any>,
     options: { onConflict?: string } = {}
   ): Promise<ApiResponse<T>> {
@@ -285,7 +292,7 @@ export const supabaseApi = {
         throw fetchError;
       }
       
-      return { data: updatedRecord, error: null, status: 200 };
+      return { data: updatedRecord as T, error: null, status: 200 };
     } catch (error) {
       console.error(`Full upsert error details for ${table}:`, error);
       return { 
@@ -300,7 +307,7 @@ export const supabaseApi = {
    * Delete a record
    */
   async delete(
-    table: string,
+    table: TableNames,
     id: string,
     column: string = 'id'
   ): Promise<ApiResponse<null>> {
@@ -326,7 +333,7 @@ export const supabaseApi = {
    * Execute a stored procedure
    */
   async rpc<T>(
-    functionName: string,
+    functionName: FunctionNames,
     params: Record<string, any> = {}
   ): Promise<ApiResponse<T>> {
     try {
@@ -343,7 +350,7 @@ export const supabaseApi = {
         };
       }
       
-      return { data, error: null, status: 200 };
+      return { data: data as T, error: null, status: 200 };
     } catch (error) {
       return { 
         data: null, 
@@ -378,4 +385,4 @@ export const showResponseToast = (
     });
     return true;
   }
-}; 
+};

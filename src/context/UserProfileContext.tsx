@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +14,11 @@ interface UserProfileState {
 interface UserProfileContextType extends UserProfileState {
   setSkillsAnalyzed: (skills: Skill[]) => Promise<void>;
   resetSkillAnalysis: () => void;
+}
+
+interface UserProfileData {
+  has_completed_skill_analysis?: boolean;
+  skills?: Skill[];
 }
 
 const initialState: UserProfileState = {
@@ -39,7 +45,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       try {
         // Check if user has profile data with skills in Supabase
-        const response = await supabaseApi.getById(
+        const response = await supabaseApi.getById<UserProfileData>(
           'user_profiles',
           user.id,
           'user_id',
@@ -170,4 +176,4 @@ export const useUserProfile = () => {
     throw new Error('useUserProfile must be used within a UserProfileProvider');
   }
   return context;
-}; 
+};

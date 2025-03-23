@@ -40,6 +40,18 @@ interface TeamMember {
   isAdmin?: boolean;
 }
 
+interface JoinRequestData {
+  id: string;
+  status: string;
+  created_at: string;
+  profiles: {
+    id: string;
+    name: string;
+    avatar_url?: string;
+    title?: string;
+  };
+}
+
 const Teams = () => {
   const { id } = useParams<{ id: string }>();
   const [team, setTeam] = useState<Team | null>(null);
@@ -47,7 +59,7 @@ const Teams = () => {
   const [isUserMember, setIsUserMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [joinRequestStatus, setJoinRequestStatus] = useState<string | null>(null);
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<JoinRequestData[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -170,7 +182,6 @@ const Teams = () => {
         throw new Error(response.error);
       }
       
-      // Since getMany returns an array, we need to get the first item
       setJoinRequestStatus(response.data && response.data.length > 0 ? response.data[0].status : null);
     } catch (error) {
       console.error('Error checking join request status:', error);
@@ -181,7 +192,7 @@ const Teams = () => {
     if (!user || !id) return;
     
     try {
-      const response = await supabaseApi.getMany('team_join_requests', {
+      const response = await supabaseApi.getMany<JoinRequestData[]>('team_join_requests', {
         select: `
           id,
           status,
