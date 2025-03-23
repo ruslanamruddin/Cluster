@@ -9,7 +9,7 @@ import { UserProfile } from './ProfileCard';
 import TeamList from './TeamList';
 import TeamDashboard from './TeamDashboard';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, JoinRequestResponse } from '@/integrations/supabase/client';
 
 interface TeamTabProps {
   teams: Team[];
@@ -120,10 +120,12 @@ const TeamTab: React.FC<TeamTabProps> = ({
       
       if (error) throw error;
       
-      if (data.error) {
+      const response = data as JoinRequestResponse;
+      
+      if (response.error) {
         toast({
           title: "Join Request Failed",
-          description: data.error,
+          description: response.error,
           variant: "destructive",
         });
         return;

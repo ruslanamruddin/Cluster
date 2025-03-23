@@ -9,6 +9,17 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+export type JoinRequestResponse = {
+  id?: string;
+  status?: string;
+  error?: string;
+};
+
+export type ProcessRequestResponse = {
+  message?: string;
+  error?: string;
+};
+
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,

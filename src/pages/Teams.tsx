@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -27,7 +28,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, JoinRequestResponse, ProcessRequestResponse } from '@/integrations/supabase/client';
 
 interface TeamMember {
   id: string;
@@ -216,10 +217,12 @@ const Teams = () => {
       
       if (error) throw error;
       
-      if (data.error) {
+      const response = data as JoinRequestResponse;
+      
+      if (response.error) {
         toast({
           title: "Join Request Failed",
-          description: data.error,
+          description: response.error,
           variant: "destructive"
         });
         return;
@@ -256,10 +259,12 @@ const Teams = () => {
       
       if (error) throw error;
       
-      if (data.error) {
+      const response = data as ProcessRequestResponse;
+      
+      if (response.error) {
         toast({
           title: "Action Failed",
-          description: data.error,
+          description: response.error,
           variant: "destructive"
         });
         return;
@@ -267,7 +272,7 @@ const Teams = () => {
       
       toast({
         title: status === 'approved' ? "Request Approved" : "Request Rejected",
-        description: data.message,
+        description: response.message || `Request ${status} successfully`,
       });
       
       fetchPendingRequests();
