@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -924,3 +925,22 @@ const Explore = () => {
                     className="mt-4"
                     onClick={clearFilters}
                   >
+                    Clear all filters
+                  </Button>
+                )}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="create-team" className="mt-0">
+            {(showTeamCreation || activeTab === 'create-team') && (
+              <TeamCreation onTeamCreated={handleTeamCreated} />
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </Layout>
+  );
+};
+
+export default Explore;
