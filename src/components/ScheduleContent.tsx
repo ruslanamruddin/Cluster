@@ -9,11 +9,13 @@ import TaskProgress from '@/components/TaskProgress';
 interface ScheduleContentProps {
   selectedDaySchedule: any;
   teamTasks: any[];
+  defaultTab?: "events" | "tasks";
 }
 
 const ScheduleContent: React.FC<ScheduleContentProps> = ({
   selectedDaySchedule,
   teamTasks,
+  defaultTab = "events",
 }) => {
   return (
     <Card className="lg:col-span-2">
@@ -21,7 +23,7 @@ const ScheduleContent: React.FC<ScheduleContentProps> = ({
         <CardTitle>Event Details</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="events">
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="mb-4">
             <TabsTrigger value="events" className="flex items-center gap-2">
               <CalendarClock className="h-4 w-4" />
