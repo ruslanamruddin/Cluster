@@ -105,7 +105,7 @@ export const inspectTableSchema = async (tableName: TableNames) => {
   }
 };
 
-// Debug function to check RLS policies
+// Debug function to check RLS policies, ignoring system tables
 export const checkRlsPermissions = async (tableName: TableNames) => {
   try {
     // First check auth status

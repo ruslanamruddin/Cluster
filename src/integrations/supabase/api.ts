@@ -3,6 +3,7 @@ import { supabase } from './client';
 import { toast } from '@/components/ui/use-toast';
 import { Database } from './types';
 import { Json } from './types';
+import { PostgrestSingleResponse } from '@supabase/supabase-js';
 
 type Tables = Database['public']['Tables'];
 type TableNames = keyof Tables;
@@ -108,7 +109,7 @@ export const supabaseApi = {
         .from(table)
         .select(select)
         .eq(column, id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       
@@ -173,8 +174,8 @@ export const supabaseApi = {
   /**
    * Insert a new record
    */
-  async insert<T, K extends TableNames = TableNames>(
-    table: K,
+  async insert<T>(
+    table: TableNames,
     data: Record<string, any>
   ): Promise<ApiResponse<T>> {
     try {
@@ -183,15 +184,16 @@ export const supabaseApi = {
       
       console.log(`Sanitized insert data for ${table}:`, sanitizedData);
       
+      // Use type casting to resolve the TypeScript error
       const { data: record, error } = await supabase
         .from(table)
-        .insert(sanitizedData as Tables[K]['Insert'])
+        .insert(sanitizedData as any)
         .select()
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       
-      return { data: record as unknown as T, error: null, status: 201 };
+      return { data: record as T, error: null, status: 201 };
     } catch (error) {
       return { 
         data: null, 
@@ -204,8 +206,8 @@ export const supabaseApi = {
   /**
    * Update an existing record
    */
-  async update<T, K extends TableNames = TableNames>(
-    table: K,
+  async update<T>(
+    table: TableNames,
     id: string,
     data: Record<string, any>,
     column: string = 'id'
@@ -219,16 +221,17 @@ export const supabaseApi = {
       
       console.log(`Sanitized update data for ${table}:`, sanitizedData);
       
+      // Use type casting to resolve the TypeScript error
       const { data: record, error } = await supabase
         .from(table)
-        .update(sanitizedData as Tables[K]['Update'])
+        .update(sanitizedData as any)
         .eq(column, id)
         .select()
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       
-      return { data: record as unknown as T, error: null, status: 200 };
+      return { data: record as T, error: null, status: 200 };
     } catch (error) {
       return { 
         data: null, 
@@ -241,8 +244,8 @@ export const supabaseApi = {
   /**
    * Upsert (insert or update) a record
    */
-  async upsert<T, K extends TableNames = TableNames>(
-    table: K,
+  async upsert<T>(
+    table: TableNames,
     data: Record<string, any>,
     options: { onConflict?: string } = {}
   ): Promise<ApiResponse<T>> {
@@ -268,10 +271,10 @@ export const supabaseApi = {
       
       console.log(`Sanitized data for ${table}:`, sanitizedData);
       
-      // Proceed with upsert using sanitized data
+      // Proceed with upsert using sanitized data and type casting
       const { data: record, error } = await supabase
         .from(table)
-        .upsert(sanitizedData as Tables[K]['Insert'], { 
+        .upsert(sanitizedData as any, { 
           onConflict: options.onConflict || 'id',
           returning: 'minimal'  // Changed to minimal to avoid selection errors
         });
@@ -286,14 +289,14 @@ export const supabaseApi = {
         .from(table)
         .select('*')
         .eq('id', data.id)
-        .single();
+        .maybeSingle();
         
       if (fetchError) {
         console.error(`Error fetching updated record:`, fetchError);
         throw fetchError;
       }
       
-      return { data: updatedRecord as unknown as T, error: null, status: 200 };
+      return { data: updatedRecord as T, error: null, status: 200 };
     } catch (error) {
       console.error(`Full upsert error details for ${table}:`, error);
       return { 
@@ -335,10 +338,11 @@ export const supabaseApi = {
    */
   async rpc<T>(
     functionName: FunctionNames,
-    params: Parameters<Database['public']['Functions'][typeof functionName]>[0] = {}
+    params: Record<string, any> = {}
   ): Promise<ApiResponse<T>> {
     try {
-      const { data, error } = await supabase.rpc(functionName, params);
+      // Type assertion to match Supabase's expected type
+      const { data, error } = await supabase.rpc(functionName, params as any);
       
       if (error) throw error;
       

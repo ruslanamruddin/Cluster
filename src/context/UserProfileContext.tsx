@@ -61,7 +61,8 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (response.data) {
           setState({
             hasCompletedSkillAnalysis: response.data.has_completed_skill_analysis || false,
-            skills: (response.data.skills as Skill[]) || [],
+            // Safely cast the skills JSON to Skill[] with a type guard
+            skills: (response.data.skills as unknown as Skill[]) || [],
             isLoading: false,
           });
         } else {

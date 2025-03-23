@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -91,7 +90,7 @@ const TeamTab: React.FC<TeamTabProps> = ({
     if (!user) return;
     
     try {
-      const response = await supabaseApi.getMany<Database['public']['Tables']['team_join_requests']['Row'][]>('team_join_requests', {
+      const response = await supabaseApi.getMany<TeamJoinRequest[]>('team_join_requests', {
         select: 'team_id, status',
         filters: { user_id: user.id }
       });
