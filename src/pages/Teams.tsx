@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 interface TeamsProps {
-  userProfile: UserProfile | null;
+  userProfile?: UserProfile | null;
 }
 
 const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
@@ -254,7 +254,7 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     setSelectedTeam(team);
     setTeamName(team.name);
     setTeamDescription(team.description || '');
-    setTeamProjectIdea(team.project_idea || '');
+    setTeamProjectIdea(team.projectIdea || '');
     setIsRecruiting(team.isRecruiting || true);
     setIsEditTeamOpen(true);
   };
@@ -274,7 +274,7 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
     const matchesSearchTerm =
       team.name.toLowerCase().includes(searchTermLower) ||
       (team.description && team.description.toLowerCase().includes(searchTermLower)) ||
-      (team.project_idea && team.project_idea.toLowerCase().includes(searchTermLower));
+      (team.projectIdea && team.projectIdea.toLowerCase().includes(searchTermLower));
 
     return matchesSearchTerm;
   });
@@ -319,7 +319,7 @@ const Teams: React.FC<TeamsProps> = ({ userProfile }) => {
               <Input
                 type="text"
                 id="project-idea"
-                value={selectedTeam?.project_idea || 'No project idea provided.'}
+                value={selectedTeam?.projectIdea || 'No project idea provided.'}
                 className="col-span-3"
                 readOnly
               />
@@ -575,7 +575,6 @@ const ProcessRequestsDialog: React.FC<ProcessRequestsDialogProps> = ({ team, ope
     setProcessing(true);
     
     try {
-      // Cast parameters to match expected types
       const response = await supabaseApi.rpc(
         'process_join_request',
         { 

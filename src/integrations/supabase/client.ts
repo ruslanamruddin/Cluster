@@ -47,13 +47,18 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Debug function to test permissions
+// Debug function to test permissions - using strong typing for table names
 export const testPermissions = async () => {
   const { data: sessionData } = await supabase.auth.getSession();
   console.log("Current session:", sessionData);
   
   try {
-    const { data, error } = await supabase.from('profiles').select('*').limit(1);
+    // Use a valid table name from the Database type
+    const { data, error } = await supabase
+      .from('profiles' as TableNames)
+      .select('*')
+      .limit(1);
+      
     console.log("Test query result:", { data, error });
     return { success: !error, error, data };
   } catch (err) {
@@ -62,7 +67,7 @@ export const testPermissions = async () => {
   }
 };
 
-// Debug function to check database schema
+// Debug function to check database schema - using strong typing for table names
 export const inspectTableSchema = async (tableName: TableNames) => {
   try {
     // First check if we can access the table at all

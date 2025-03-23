@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Card,
@@ -18,7 +19,7 @@ export interface Team {
   name: string;
   description: string;
   members: UserProfile[];
-  projectIdea: string;
+  projectIdea: string;  // Changed from project_idea to match our usage in Teams.tsx
   isRecruiting: boolean;
   skillsNeeded?: string[];
   hackathonId?: string;

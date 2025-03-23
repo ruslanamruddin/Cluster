@@ -5,6 +5,7 @@ import { Database } from './types';
 import { Json } from './types';
 import { PostgrestSingleResponse } from '@supabase/supabase-js';
 
+// Extract the table names from the Database type
 type Tables = Database['public']['Tables'];
 type TableNames = keyof Tables;
 type Functions = Database['public']['Functions'];
@@ -54,7 +55,7 @@ async function sanitizeDataForTable<T extends TableNames>(
   data: Record<string, any>
 ): Promise<Record<string, any>> {
   // If we don't have schema info for this table yet, try to get it
-  if (!schemaCache[table as string]) {
+  if (!schemaCache[table]) {
     try {
       // First try to infer schema from a sample record
       const { data: sampleData, error } = await supabase
@@ -63,8 +64,8 @@ async function sanitizeDataForTable<T extends TableNames>(
         .limit(1);
       
       if (!error && sampleData && sampleData.length > 0) {
-        schemaCache[table as string] = Object.keys(sampleData[0]);
-        console.log(`Schema for ${table} cached:`, schemaCache[table as string]);
+        schemaCache[table] = Object.keys(sampleData[0]);
+        console.log(`Schema for ${table} cached:`, schemaCache[table]);
       }
     } catch (e) {
       console.error(`Failed to infer schema for ${table}:`, e);
@@ -72,12 +73,12 @@ async function sanitizeDataForTable<T extends TableNames>(
   }
   
   // If we have schema info, sanitize the data
-  if (schemaCache[table as string] && schemaCache[table as string].length > 0) {
+  if (schemaCache[table] && schemaCache[table].length > 0) {
     const sanitized: Record<string, any> = {};
     
     // Only include fields that exist in the schema
     Object.keys(data).forEach(key => {
-      if (schemaCache[table as string].includes(key)) {
+      if (schemaCache[table].includes(key)) {
         sanitized[key] = data[key];
       } else {
         console.warn(`Column '${key}' not found in '${table}' schema, removing it`);
@@ -134,7 +135,7 @@ export const supabaseApi = {
       order?: { column: string; ascending?: boolean };
       limit?: number;
     } = {}
-  ): Promise<ApiResponse<T>> {
+  ): Promise<ApiResponse<T[]>> {
     try {
       const { select = '*', filters = {}, order, limit } = options;
       
@@ -161,7 +162,7 @@ export const supabaseApi = {
       
       if (error) throw error;
       
-      return { data: data as T, error: null, status: 200 };
+      return { data: data as T[], error: null, status: 200 };
     } catch (error) {
       return { 
         data: null, 
@@ -184,7 +185,7 @@ export const supabaseApi = {
       
       console.log(`Sanitized insert data for ${table}:`, sanitizedData);
       
-      // Use type casting to resolve the TypeScript error
+      // Type assertion to satisfy TypeScript
       const { data: record, error } = await supabase
         .from(table)
         .insert(sanitizedData as any)
@@ -221,7 +222,7 @@ export const supabaseApi = {
       
       console.log(`Sanitized update data for ${table}:`, sanitizedData);
       
-      // Use type casting to resolve the TypeScript error
+      // Type assertion to satisfy TypeScript
       const { data: record, error } = await supabase
         .from(table)
         .update(sanitizedData as any)
@@ -276,7 +277,7 @@ export const supabaseApi = {
         .from(table)
         .upsert(sanitizedData as any, { 
           onConflict: options.onConflict || 'id',
-          returning: 'minimal'  // Changed to minimal to avoid selection errors
+          ignoreDuplicates: false
         });
       
       if (error) {
@@ -284,7 +285,7 @@ export const supabaseApi = {
         throw error;
       }
       
-      // Since we're returning minimal, we need to manually fetch the record
+      // Since we're not returning data on upsert, we need to manually fetch the record
       const { data: updatedRecord, error: fetchError } = await supabase
         .from(table)
         .select('*')
