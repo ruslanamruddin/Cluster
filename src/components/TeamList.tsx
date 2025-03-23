@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Card,
   CardContent,
@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { UserProfile } from './ProfileCard';
 import { Users, ArrowRight, UserPlus } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 export interface Team {
   id: string;
@@ -27,15 +28,45 @@ interface TeamListProps {
   teams: Team[];
   onJoinRequest?: (teamId: string) => void;
   onViewDetails?: (team: Team) => void;
+  isLoading?: boolean;
 }
 
-const TeamList: React.FC<TeamListProps> = ({ teams, onJoinRequest, onViewDetails }) => {
+const TeamList: React.FC<TeamListProps> = ({ 
+  teams, 
+  onJoinRequest, 
+  onViewDetails,
+  isLoading = false 
+}) => {
+  const { toast } = useToast();
+  
   // Sort teams: recruiting teams first, then alphabetically
   const sortedTeams = [...teams].sort((a, b) => {
     if (a.isRecruiting && !b.isRecruiting) return -1;
     if (!a.isRecruiting && b.isRecruiting) return 1;
     return a.name.localeCompare(b.name);
   });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="animate-pulse opacity-70">
+            <CardHeader className="pb-2">
+              <div className="h-6 bg-muted rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-muted rounded w-2/3"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="h-4 bg-muted rounded w-full"></div>
+                <div className="h-4 bg-muted rounded w-full"></div>
+                <div className="h-8 bg-muted rounded-full w-8"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -123,7 +154,13 @@ const TeamList: React.FC<TeamListProps> = ({ teams, onJoinRequest, onViewDetails
                 
                 {team.isRecruiting && onJoinRequest && (
                   <Button 
-                    onClick={() => onJoinRequest(team.id)} 
+                    onClick={() => {
+                      onJoinRequest(team.id);
+                      toast({
+                        title: "Request sent",
+                        description: "Your request to join the team has been sent.",
+                      });
+                    }} 
                     variant="outline" 
                     size="sm"
                     className="gap-1"

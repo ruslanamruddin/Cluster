@@ -30,6 +30,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { categorizeSkills } from '@/lib/skillAnalysis';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Explore = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +40,8 @@ const Explore = () => {
   const [activeTab, setActiveTab] = useState<'members' | 'teams' | 'active-teams' | 'create-team' | 'team-details'>('active-teams');
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [showTeamCreation, setShowTeamCreation] = useState(false);
+  const [isLoadingTeams, setIsLoadingTeams] = useState(true);
+  const [teams, setTeams] = useState<Team[]>([]);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -320,9 +323,101 @@ const Explore = () => {
     },
   ];
 
+  // Fetch teams from the database
+  const fetchTeams = async () => {
+    try {
+      setIsLoadingTeams(true);
+      
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select(`
+          id,
+          name,
+          description,
+          project_idea,
+          is_recruiting,
+          team_members (
+            id,
+            is_admin,
+            user_id,
+            profiles:user_id (
+              id,
+              name,
+              title,
+              avatar_url,
+              bio
+            )
+          ),
+          team_skills_needed (
+            id,
+            skills:skill_id (
+              id,
+              name
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (teamsError) throw teamsError;
+      
+      // Transform the data to match our Team interface
+      const transformedTeams: Team[] = teamsData.map(teamData => {
+        const members: UserProfile[] = teamData.team_members
+          .filter((member: any) => member.profiles) // Filter out any null profiles
+          .map((member: any) => ({
+            id: member.profiles.id,
+            name: member.profiles.name,
+            avatar: member.profiles.avatar_url || '',
+            title: member.profiles.title || '',
+            bio: member.profiles.bio || '',
+            skills: [], // We don't have this info from this query
+          }));
+          
+        const skillsNeeded = teamData.team_skills_needed
+          .filter((skill: any) => skill.skills) // Filter out any null skills
+          .map((skill: any) => skill.skills.name);
+        
+        return {
+          id: teamData.id,
+          name: teamData.name,
+          description: teamData.description || '',
+          members,
+          projectIdea: teamData.project_idea || '',
+          isRecruiting: teamData.is_recruiting,
+          skillsNeeded,
+        };
+      });
+      
+      setTeams(transformedTeams);
+      
+      // If we're looking for a specific team and it's in the database
+      if (id) {
+        const foundTeam = transformedTeams.find(t => t.id === id);
+        if (foundTeam) {
+          setSelectedTeam(foundTeam);
+          setActiveTab('team-details');
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      toast({
+        title: "Failed to load teams",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingTeams(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTeams();
+  }, []);
+  
   useEffect(() => {
     if (id) {
-      const foundTeam = [...activeTeams, ...sampleTeams].find(t => t.id === id);
+      const foundTeam = teams.find(t => t.id === id);
       if (foundTeam) {
         setSelectedTeam(foundTeam);
         setActiveTab('team-details');
@@ -331,7 +426,7 @@ const Explore = () => {
       setSelectedTeam(null);
       setActiveTab('active-teams');
     }
-  }, [id]);
+  }, [id, teams]);
 
   const availableFilters = [
     'React', 'TypeScript', 'JavaScript', 'Node.js', 'Python', 
@@ -371,25 +466,13 @@ const Explore = () => {
     members: UserProfile[];
     projectIdea: string;
   }) => {
-    const newTeam: Team = {
-      id: `new-${Date.now()}`,
-      name: team.name,
-      description: team.description,
-      members: team.members,
-      projectIdea: team.projectIdea,
-      isRecruiting: true,
-      skillsNeeded: []
-    };
-    
-    activeTeams.unshift(newTeam);
+    // Refresh the teams list to include the newly created team
+    fetchTeams();
     
     setActiveTab('active-teams');
     setShowTeamCreation(false);
     
-    toast({
-      title: "Team created successfully",
-      description: `${team.name} has been created with ${team.members.length} members.`,
-    });
+    // Toast is already shown in the TeamCreation component
   };
 
   const handleViewTeamDetails = (team: Team) => {
@@ -419,7 +502,7 @@ const Explore = () => {
     return matchesSearch && matchesFilters;
   });
   
-  const filteredTeams = sampleTeams.filter(team => {
+  const filteredTeams = teams.filter(team => {
     const matchesSearch = searchTerm === '' || 
       team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       team.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -690,7 +773,7 @@ const Explore = () => {
               </div>
             )}
             
-            {!showTeamCreation && activeTab !== 'create-team' && (
+            {!showTeamCreation && activeTab !== 'create-team' && user && (
               <Button 
                 onClick={() => {
                   setShowTeamCreation(true);
@@ -718,7 +801,7 @@ const Explore = () => {
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
             <TabsTrigger value="active-teams">Active Teams</TabsTrigger>
             <TabsTrigger value="members">Find Teammates</TabsTrigger>
-            <TabsTrigger value="teams">Find Teams</TabsTrigger>
+            <TabsTrigger value="teams">All Teams</TabsTrigger>
           </TabsList>
 
           {activeTab !== 'create-team' && (
@@ -757,12 +840,13 @@ const Explore = () => {
           
           <TabsContent value="active-teams" className="mt-0">
             <TeamList 
-              teams={filteredActiveTeams}
+              teams={filteredTeams.filter(team => team.isRecruiting)}
               onJoinRequest={handleJoinRequest}
               onViewDetails={handleViewTeamDetails}
+              isLoading={isLoadingTeams}
             />
             
-            {filteredActiveTeams.length === 0 && (
+            {!isLoadingTeams && filteredTeams.filter(team => team.isRecruiting).length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="mb-4 rounded-full bg-muted p-4">
                   <Users className="h-6 w-6 text-muted-foreground" />
@@ -822,9 +906,10 @@ const Explore = () => {
               teams={filteredTeams}
               onJoinRequest={handleJoinRequest}
               onViewDetails={handleViewTeamDetails}
+              isLoading={isLoadingTeams}
             />
             
-            {filteredTeams.length === 0 && (
+            {!isLoadingTeams && filteredTeams.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="mb-4 rounded-full bg-muted p-4">
                   <Users className="h-6 w-6 text-muted-foreground" />
@@ -839,23 +924,3 @@ const Explore = () => {
                     className="mt-4"
                     onClick={clearFilters}
                   >
-                    Clear all filters
-                  </Button>
-                )}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="create-team" className="mt-0">
-            <TeamCreation
-              availableMembers={sampleUsers}
-              onTeamCreated={handleTeamCreated}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </Layout>
-  );
-};
-
-export default Explore;

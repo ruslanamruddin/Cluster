@@ -16,7 +16,9 @@ import { Badge } from '@/components/ui/badge';
 import { UserProfile } from './ProfileCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/components/ui/use-toast';
-import { Users, X, Plus, Check } from 'lucide-react';
+import { Users, X, Plus, Check, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 interface TeamCreationProps {
   availableMembers: UserProfile[];
@@ -37,7 +39,9 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
   const [projectIdea, setProjectIdea] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<UserProfile[]>([]);
   const [showMemberSelector, setShowMemberSelector] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleAddMember = (member: UserProfile) => {
     if (!selectedMembers.find(m => m.id === member.id)) {
@@ -49,8 +53,17 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
     setSelectedMembers(selectedMembers.filter(member => member.id !== id));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to create a team",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!teamName.trim()) {
       toast({
@@ -69,24 +82,69 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
       });
       return;
     }
-    
-    onTeamCreated({
-      name: teamName,
-      description,
-      members: selectedMembers,
-      projectIdea,
-    });
-    
-    // Reset form
-    setTeamName('');
-    setDescription('');
-    setProjectIdea('');
-    setSelectedMembers([]);
-    
-    toast({
-      title: "Team created successfully",
-      description: `${teamName} has been created with ${selectedMembers.length} members.`,
-    });
+
+    try {
+      setIsLoading(true);
+      
+      // Create team in Supabase
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .insert({
+          name: teamName,
+          description,
+          project_idea: projectIdea,
+          is_recruiting: true,
+        })
+        .select()
+        .single();
+      
+      if (teamError) throw teamError;
+      
+      // Add team members
+      const teamMembersToInsert = selectedMembers.map((member, index) => ({
+        team_id: teamData.id,
+        user_id: member.id,
+        is_admin: index === 0, // First member is admin
+      }));
+      
+      const { error: memberError } = await supabase
+        .from('team_members')
+        .insert(teamMembersToInsert);
+      
+      if (memberError) throw memberError;
+      
+      // If there are skills needed, add them
+      // This would be implemented if we had a way to specify skills needed
+      
+      // Reset form
+      setTeamName('');
+      setDescription('');
+      setProjectIdea('');
+      setSelectedMembers([]);
+      
+      // Call the callback to update UI
+      onTeamCreated({
+        name: teamName,
+        description,
+        members: selectedMembers,
+        projectIdea,
+      });
+      
+      toast({
+        title: "Team created successfully",
+        description: `${teamName} has been created with ${selectedMembers.length} members.`,
+      });
+      
+    } catch (error) {
+      console.error('Error creating team:', error);
+      toast({
+        title: "Failed to create team",
+        description: `Error: ${(error as Error).message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const remainingMembers = availableMembers.filter(
@@ -142,7 +200,7 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
             
             {selectedMembers.length > 0 ? (
               <div className="flex flex-col gap-2 mt-2">
-                {selectedMembers.map(member => (
+                {selectedMembers.map((member, index) => (
                   <div 
                     key={member.id}
                     className="flex justify-between items-center p-2 rounded-md border border-border bg-card"
@@ -157,6 +215,9 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
                       <div>
                         <p className="text-sm font-medium">{member.name}</p>
                         <p className="text-xs text-muted-foreground">{member.title}</p>
+                        {index === 0 && (
+                          <Badge variant="outline" className="text-xs mt-1">Team Admin</Badge>
+                        )}
                       </div>
                     </div>
                     <Button 
@@ -246,9 +307,18 @@ const TeamCreation: React.FC<TeamCreationProps> = ({
           </div>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button type="submit" className="flex items-center">
-            <Check size={16} className="mr-2" />
-            Create Team
+          <Button type="submit" className="flex items-center" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 size={16} className="mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Check size={16} className="mr-2" />
+                Create Team
+              </>
+            )}
           </Button>
         </CardFooter>
       </form>
